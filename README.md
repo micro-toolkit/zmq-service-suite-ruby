@@ -1,6 +1,6 @@
 [![Build Status](https://travis-ci.org/pjanuario/zmq-service-suite-ruby.svg?branch=master)](https://travis-ci.org/pjanuario/zmq-service-suite-ruby)
 [![Code Climate](https://codeclimate.com/github/pjanuario/zmq-service-suite-ruby.png)](https://codeclimate.com/github/pjanuario/zmq-service-suite-ruby)
-[![Coverage](http://img.shields.io/codeclimate/coverage/github/pjanuario/zmq-service-suite-ruby.svg)](https://codeclimate.com/github/pjanuario/zmq-service-suite-ruby)
+[![Coverage](https://codeclimate.com/github/pjanuario/zmq-service-suite-ruby/coverage.png)](https://codeclimate.com/github/pjanuario/zmq-service-suite-ruby)
 [![Dependency Status](https://gemnasium.com/pjanuario/zmq-service-suite-ruby.svg)](https://gemnasium.com/pjanuario/zmq-service-suite-ruby)
 [![Gem Version](https://badge.fury.io/rb/zss.svg)](http://badge.fury.io/rb/zss)
 
