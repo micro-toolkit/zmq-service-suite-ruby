@@ -1,7 +1,5 @@
 ENV['ZSS_ENV'] ||= 'test'
 
-
-
 if ENV['CODECLIMATE_REPO_TOKEN']
   require "codeclimate-test-reporter"
   CodeClimate::TestReporter.start
