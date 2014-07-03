@@ -16,3 +16,7 @@ before_install:
   - "gem install bundler --no-rdoc --no-ri 1>/dev/null"
 script:
   - "bundle exec rspec"
+addons:
+  code_climate:
+    repo_token:
+      secure: U6d5emmLhWdFAqrVgtHtXDs1lR2f40is89mZfOp1HbnTQKnClGbmCuEGfeHL8HbaMZjpxFb7g9Ery26E3g1gCsE82sP8SkD0qY46LbWlufRctZWsD4d+TZZZttqo2eNNObKkW5JbzW2pGiRqQb7RCfsxsOnqqhXl3uXVOHK24x4=
