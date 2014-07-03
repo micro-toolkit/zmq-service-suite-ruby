@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    zss (0.0.1)
+    zss (0.0.2)
       activesupport
       ffi-rzmq
       hashie
