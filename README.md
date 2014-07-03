@@ -76,6 +76,22 @@ PongClient.call("ping/pong", "payload")
 4. Push to the branch (`git push origin my-new-feature`)
 5. Create new Pull Request
 
+## Bump versioning
+
+We use [bump gem](https://github.com/gregorym/bump) to control gem versioning.
+
+Bump Patch version
+
+    $ bump minor
+
+Bump Minor version
+
+    $ bump minor
+
+Bump Major version
+
+    $ bump major
+
 ## Running Specs
 
     $ rspec
