@@ -20,3 +20,10 @@ addons:
   code_climate:
     repo_token:
       secure: U6d5emmLhWdFAqrVgtHtXDs1lR2f40is89mZfOp1HbnTQKnClGbmCuEGfeHL8HbaMZjpxFb7g9Ery26E3g1gCsE82sP8SkD0qY46LbWlufRctZWsD4d+TZZZttqo2eNNObKkW5JbzW2pGiRqQb7RCfsxsOnqqhXl3uXVOHK24x4=
+before_deploy:
+  - bump patch
+deploy:
+  provider: rubygems
+  api_key:
+    secure: OsOTnuz+qiZe4RY2hOhYsv46LJE7eQf3jZAX5oBBxsSaC6V91SgyHgl1mexMM6r1CPvgOlG4b33AU2Um9NIVrO11fwl/psSeh6zrMf46l5tmn+QCtjOuoM1jtKpomYAPXioH0KkZWoRcqPyNZemZx14YJQW0/fLtrc5xUS20Re0=
+  gemspec: zss.gemspec
