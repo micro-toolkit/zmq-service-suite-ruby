@@ -2,14 +2,37 @@
 [![Code Climate](https://codeclimate.com/github/pjanuario/zmq-service-suite-ruby.png)](https://codeclimate.com/github/pjanuario/zmq-service-suite-ruby)
 [![Coverage](http://img.shields.io/codeclimate/coverage/github/pjanuario/zmq-service-suite-ruby.svg)](https://codeclimate.com/github/pjanuario/zmq-service-suite-ruby)
 [![Dependency Status](https://gemnasium.com/pjanuario/zmq-service-suite-ruby.svg)](https://gemnasium.com/pjanuario/zmq-service-suite-ruby)
+[![Gem Version](https://badge.fury.io/rb/zss.svg)](http://badge.fury.io/rb/zss)
 
 # ZMQ SOA Suite - Ruby Client &amp; Service
 
 For now protocol description is under node js implementation and will be moved soon to a proper place.
 https://github.com/pjanuario/zmq-service-suite
 
+## Installation
 
-# ZSS Client
+Add this line to your application's Gemfile:
+
+    gem 'zss'
+
+And then execute:
+
+    $ bundle
+
+Or install it yourself as:
+
+    $ gem install zss
+
+**NOTE:**
+
+You need to have [0MQ installed](http://zeromq.org/area:download).
+
+If you use MacOS just do
+
+    $ brew install zeromq
+
+
+## ZSS Client
 
 ```ruby
 require 'zss'
@@ -44,3 +67,19 @@ PongClient.ping_pong("payload")
 PongClient.call("ping/pong", "payload")
 
 ```
+
+## Contributing
+
+1. Fork it
+2. Create your feature branch (`git checkout -b my-new-feature`)
+3. Commit your changes (`git commit -am 'Add some feature'`)
+4. Push to the branch (`git push origin my-new-feature`)
+5. Create new Pull Request
+
+## Running Specs
+
+    $ rspec
+
+## Coverage Report
+
+    $ open ./coverage/index.html
