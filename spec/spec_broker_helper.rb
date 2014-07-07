@@ -16,7 +16,7 @@ module BrokerHelper
           context = ZMQ::Context.create
           socket = context.socket ZMQ::ROUTER
           socket.setsockopt(ZMQ::LINGER, 0)
-          socket.connect(endpoint)
+          socket.bind(endpoint)
           puts "broker connected" if LOG_BROKER_INFO
 
           socket.recv_strings(frames = [])
