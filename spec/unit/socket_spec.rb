@@ -4,11 +4,11 @@ require 'ffi-rzmq'
 
 describe ZSS::Socket do
 
-  let(:broker_frontend) { "ipc://socket_spec" }
+  let(:socket_address) { "ipc://socket_spec" }
 
   let :config do
     Hashie::Mash.new(
-      socket_address: broker_frontend,
+      socket_address: socket_address,
       identity: 'socket-identity',
       timeout: 300
     )
@@ -56,13 +56,13 @@ describe ZSS::Socket do
         expect { subject.call(message) }.to raise_exception(ZSS::Socket::Error)
       end
 
-      it('bind to frontend') do
+      it('connect to socket address') do
         context = double('ZMQ::Context').as_null_object
         socket = double('ZMQ::Socket').as_null_object
         allow(ZMQ::Context).to receive(:create) { context }
         allow(context).to receive(:socket) { socket }
         allow(socket).to receive(:send_string) { -1 }
-        expect(socket).to receive(:bind).with(broker_frontend)
+        expect(socket).to receive(:connect).with(socket_address)
         expect { subject.call(message) }.to raise_exception(ZSS::Socket::Error)
       end
 
