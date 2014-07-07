@@ -51,7 +51,7 @@ module ZSS
       fail Socket::Error, 'failed to create socket' unless socket
       socket.identity = "#{identity}##{SecureRandom.uuid}"
       socket.setsockopt(ZMQ::LINGER, 0)
-      socket.bind(socket_address)
+      socket.connect(socket_address)
       yield socket
     ensure
       check! socket.close if socket
