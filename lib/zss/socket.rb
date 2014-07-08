@@ -1,4 +1,5 @@
 require 'ffi-rzmq'
+require 'timeout'
 
 module ZSS
   class Socket
@@ -20,8 +21,8 @@ module ZSS
       response = nil
       t = (call_timeout || timeout) / 1000.0
 
-      context do |ctx|
-        socket ctx do |sock|
+      context_internal do |ctx|
+        socket_internal ctx do |sock|
           begin
             ::Timeout.timeout t do
               send_message sock, request
@@ -36,14 +37,10 @@ module ZSS
       response
     end
 
-    private
-
     def context
       context = ZMQ::Context.create(1)
       fail Socket::Error, 'failed to create context' unless context
-      yield context
-    ensure
-      check!(context.terminate) if context
+      context
     end
 
     def socket context
@@ -52,9 +49,30 @@ module ZSS
       socket.identity = "#{identity}##{SecureRandom.uuid}"
       socket.setsockopt(ZMQ::LINGER, 0)
       socket.connect(socket_address)
-      yield socket
+      socket
+    end
+
+    def check! result_code
+      return if ZMQ::Util.resultcode_ok? result_code
+
+      fail Socket::Error, "operation failed, errno [#{ZMQ::Util.errno}], " +
+        "description [#{ZMQ::Util.error_string}]"
+    end
+
+    private
+
+    def context_internal
+      ctx = context
+      yield ctx
     ensure
-      check! socket.close if socket
+      check!(ctx.terminate) if ctx
+    end
+
+    def socket_internal(context)
+      open_socket = socket(context)
+      yield open_socket
+    ensure
+      check! open_socket.close if open_socket
     end
 
     def send_message socket, message
@@ -68,13 +86,6 @@ module ZSS
     def receive_message socket
       check! socket.recv_strings(frames = [])
       Message.parse frames
-    end
-
-    def check! result_code
-      return if ZMQ::Util.resultcode_ok? result_code
-
-      fail Socket::Error, "operation failed, errno [#{ZMQ::Util.errno}], " +
-        "description [#{ZMQ::Util.error_string}]"
     end
 
   end
