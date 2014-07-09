@@ -80,7 +80,7 @@ module ZSS
       first   = frames.shift
       last   = frames.pop
       frames.each { |f| check! socket.send_string f.to_s, ZMQ::SNDMORE }
-      check! socket.send_string last
+      check! socket.send_string last.to_s
     end
 
     def receive_message socket
