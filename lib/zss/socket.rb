@@ -37,42 +37,66 @@ module ZSS
       response
     end
 
-    def context
-      context = ZMQ::Context.create(1)
-      fail Socket::Error, 'failed to create context' unless context
-      context
+    def connect
+      ctx = create_context
+      connect_socket(ctx)
     end
 
-    def socket context
+    def disconnect
+      disconnect_socket
+      disconnect_context
+    end
+
+    def send message
+      send_message(open_socket, message)
+    end
+
+    def receive
+      receive_message(open_socket)
+    end
+
+    private
+
+    attr_reader :open_context, :open_socket
+
+    def create_context
+      @open_context = ZMQ::Context.create(1)
+      fail Socket::Error, 'failed to create create_context' unless open_context
+      open_context
+    end
+
+    def disconnect_context
+      check!(open_context.terminate) if open_context
+      @open_context = nil
+    end
+
+    def connect_socket context
       socket = context.socket ZMQ::DEALER
       fail Socket::Error, 'failed to create socket' unless socket
       socket.identity = "#{identity}##{SecureRandom.uuid}"
       socket.setsockopt(ZMQ::LINGER, 0)
       socket.connect(socket_address)
+      @open_socket = socket
       socket
     end
 
-    def check! result_code
-      return if ZMQ::Util.resultcode_ok? result_code
-
-      fail Socket::Error, "operation failed, errno [#{ZMQ::Util.errno}], " +
-        "description [#{ZMQ::Util.error_string}]"
+    def disconnect_socket
+      check!(open_socket.close) if open_socket
+      @open_socket = nil
     end
 
-    private
-
     def context_internal
-      ctx = context
+      ctx = create_context
       yield ctx
     ensure
-      check!(ctx.terminate) if ctx
+      disconnect_context
     end
 
     def socket_internal(context)
-      open_socket = socket(context)
-      yield open_socket
+      socket = connect_socket(context)
+      yield socket
     ensure
-      check! open_socket.close if open_socket
+      disconnect_socket
     end
 
     def send_message socket, message
@@ -86,6 +110,13 @@ module ZSS
     def receive_message socket
       check! socket.recv_strings(frames = [])
       Message.parse frames
+    end
+
+    def check! result_code
+      return if ZMQ::Util.resultcode_ok? result_code
+
+      fail Socket::Error, "operation failed, errno [#{ZMQ::Util.errno}], " +
+        "description [#{ZMQ::Util.error_string}]"
     end
 
   end

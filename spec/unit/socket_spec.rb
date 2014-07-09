@@ -28,6 +28,63 @@ describe ZSS::Socket do
 
   subject { ZSS::Socket.new(config) }
 
+  describe('#connect') do
+
+    before :each do
+      allow(ZMQ::Context).to receive(:create) { context }
+      allow(context).to receive(:socket) { socket }
+    end
+
+    context('open ZMQ Socket') do
+
+      it('with dealer type') do
+        expect(context).to receive(:socket).with(ZMQ::DEALER)
+        subject.connect
+      end
+
+      it('with identity set') do
+        expect(socket).to receive(:identity=).with("socket-identity#uuid")
+        subject.connect
+      end
+
+      it('with linger set to 0') do
+        expect(socket).to receive(:setsockopt).with(ZMQ::LINGER, 0)
+        subject.connect
+      end
+
+      it('connect to socket address') do
+        expect(socket).to receive(:connect).with(socket_address)
+        subject.connect
+      end
+
+    end
+
+  end
+
+  describe('disconnect') do
+
+    before :each do
+      allow(ZMQ::Context).to receive(:create) { context }
+      allow(context).to receive(:socket) { socket }
+      subject.connect
+    end
+
+    context('clean up resources') do
+
+      it('terminates context') do
+        expect(context).to receive(:terminate)
+        subject.disconnect
+      end
+
+      it('closes socket') do
+        expect(socket).to receive(:close)
+        subject.disconnect
+      end
+
+    end
+
+  end
+
   describe("#call") do
 
     context('open ZMQ Socket') do
@@ -114,6 +171,75 @@ describe ZSS::Socket do
         expect { subject.call(message) }.to raise_exception(ZSS::Socket::Error)
       end
 
+    end
+
+    describe('on success') do
+
+      before :each do
+        allow(ZMQ::Context).to receive(:create) { context }
+        allow(context).to receive(:socket) { socket }
+      end
+
+      it('returns a result') do
+        frames = []
+        allow(socket).to receive(:send_string) do |frame|
+          frames << frame
+          0 # return success result code
+        end
+        allow(socket).to receive(:recv_strings) do |buffer|
+          frames.each { |f| buffer << f }
+          0 # return success result code
+        end
+
+        result = subject.call(message)
+        expect(result.payload).to eq(message.payload)
+      end
+
+    end
+
+  end
+
+  describe('#receive') do
+
+    before :each do
+      allow(ZMQ::Context).to receive(:create) { context }
+      allow(context).to receive(:socket) { socket }
+      subject.connect
+    end
+
+    it('returns the received message') do
+      allow(socket).to receive(:recv_strings) do |buffer|
+        message.status = 200
+        message.to_frames.each { |f| buffer << f }
+        0 # return success result code
+      end
+
+      result = subject.receive
+      expect(result.rid).to eq(message.rid)
+      expect(result.to_s).to eq(message.to_s)
+    end
+
+  end
+
+  describe('#send') do
+
+    before :each do
+      allow(ZMQ::Context).to receive(:create) { context }
+      allow(context).to receive(:socket) { socket }
+      subject.connect
+    end
+
+    it('returns the received message') do
+      nframe = 0
+      frames = message.to_frames
+      frames.shift # remove identity that is send by zmq socket
+      expect(socket).to receive(:send_string).exactly(frames.size).times do |frame, flag|
+        expect(frame).to eq(frames[nframe].to_s)
+        nframe += 1
+        0 # return success result code
+      end
+
+      subject.send(message)
     end
 
   end
