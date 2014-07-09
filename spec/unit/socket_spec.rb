@@ -18,50 +18,42 @@ describe ZSS::Socket do
 
   let(:message) { ZSS::Message.new(address: address, payload: "PING") }
 
+  let(:context) { double('ZMQ::Context').as_null_object }
+
+  let(:socket) { double('ZMQ::Socket').as_null_object }
+
   before(:each) do
     allow(SecureRandom).to receive(:uuid) { "uuid" }
   end
 
-  describe("#call") do
+  subject { ZSS::Socket.new(config) }
 
-    subject { ZSS::Socket.new(config) }
+  describe("#call") do
 
     context('open ZMQ Socket') do
 
-      it('with dealer type') do
-        context = double('ZMQ::Context').as_null_object
+      before :each do
         allow(ZMQ::Context).to receive(:create) { context }
-        allow(context).to receive(:socket) { nil }
+        allow(context).to receive(:socket) { socket }
+        allow(socket).to receive(:send_string) { -1 }
+      end
+
+      it('with dealer type') do
         expect(context).to receive(:socket).with(ZMQ::DEALER)
         expect { subject.call(message) }.to raise_exception(ZSS::Socket::Error)
       end
 
       it('with identity set') do
-        context = double('ZMQ::Context').as_null_object
-        socket = double('ZMQ::Socket').as_null_object
-        allow(ZMQ::Context).to receive(:create) { context }
-        allow(context).to receive(:socket) { socket }
-        allow(socket).to receive(:send_string) { -1 }
         expect(socket).to receive(:identity=).with("socket-identity#uuid")
         expect { subject.call(message) }.to raise_exception(ZSS::Socket::Error)
       end
 
       it('with linger set to 0') do
-        context = double('ZMQ::Context').as_null_object
-        socket = double('ZMQ::Socket').as_null_object
-        allow(ZMQ::Context).to receive(:create) { context }
-        allow(context).to receive(:socket) { socket }
-        allow(socket).to receive(:send_string) { -1 }
         expect(socket).to receive(:setsockopt).with(ZMQ::LINGER, 0)
         expect { subject.call(message) }.to raise_exception(ZSS::Socket::Error)
       end
 
       it('connect to socket address') do
-        context = double('ZMQ::Context').as_null_object
-        socket = double('ZMQ::Socket').as_null_object
-        allow(ZMQ::Context).to receive(:create) { context }
-        allow(context).to receive(:socket) { socket }
-        allow(socket).to receive(:send_string) { -1 }
         expect(socket).to receive(:connect).with(socket_address)
         expect { subject.call(message) }.to raise_exception(ZSS::Socket::Error)
       end
@@ -91,15 +83,12 @@ describe ZSS::Socket do
       end
 
       it('raises Socket::Error on invalid socket') do
-        context = double('ZMQ::Context').as_null_object
         allow(ZMQ::Context).to receive(:create) { context }
         allow(context).to receive(:socket) { nil }
         expect { subject.call(message) }.to raise_exception(ZSS::Socket::Error)
       end
 
       it('raises Socket::Error on invalid send send_string') do
-        context = double('ZMQ::Context').as_null_object
-        socket = double('ZMQ::Socket').as_null_object
         allow(ZMQ::Context).to receive(:create) { context }
         allow(context).to receive(:socket) { socket }
         allow(socket).to receive(:send_string) { -1 }
@@ -111,7 +100,6 @@ describe ZSS::Socket do
     context('clean up resources') do
 
       it('terminates context') do
-        context = double('ZMQ::Context').as_null_object
         allow(ZMQ::Context).to receive(:create) { context }
         allow(context).to receive(:socket) { nil }
         expect(context).to receive(:terminate)
@@ -119,8 +107,6 @@ describe ZSS::Socket do
       end
 
       it('closes socket') do
-        context = double('ZMQ::Context').as_null_object
-        socket = double('ZMQ::Socket').as_null_object
         allow(ZMQ::Context).to receive(:create) { context }
         allow(context).to receive(:socket) { socket }
         allow(socket).to receive(:send_string) { -1 }
