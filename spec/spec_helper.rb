@@ -15,5 +15,14 @@ $:.push '.'
 require 'rspec'
 require 'pry'
 require 'zss'
+require 'timeout'
 
 Dir['spec/support/**/*.rb'].each &method(:require)
+
+RSpec.configure do |c|
+  c.around(:each) do |example|
+    Timeout::timeout(2) {
+      example.run
+    }
+  end
+end
