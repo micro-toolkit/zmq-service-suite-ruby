@@ -33,9 +33,6 @@ module BrokerHelper
 
             puts "broker sending #{frames}" if LOG_BROKER_INFO
           end
-
-          Thread.stop
-
         rescue => e
           puts "WTF => #{e}"
         ensure
