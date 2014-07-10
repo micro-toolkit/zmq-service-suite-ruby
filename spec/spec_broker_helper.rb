@@ -5,7 +5,7 @@ module BrokerHelper
 
   LOG_BROKER_INFO = false
 
-  def run_broker(endpoint)
+  def run_broker_for_client(endpoint)
 
     Thread.new do
       puts "broker running" if LOG_BROKER_INFO
@@ -31,7 +31,7 @@ module BrokerHelper
             frames = msg.to_frames
             socket.send_strings(frames)
 
-            puts "broker sending #{frames}" if LOG_BROKER_INFO
+            puts "broker reply #{frames}" if LOG_BROKER_INFO
           end
         rescue => e
           puts "WTF => #{e}"

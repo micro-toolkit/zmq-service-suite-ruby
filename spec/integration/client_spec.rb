@@ -25,7 +25,7 @@ describe ZSS::Client do
   end
 
   it('returns service response') do
-    @broker = run_broker(broker_frontend) do |msg|
+    @broker = run_broker_for_client(broker_frontend) do |msg|
       expect(msg.payload).to eq("ping")
       msg.status = 200
       msg.payload = "PONG"

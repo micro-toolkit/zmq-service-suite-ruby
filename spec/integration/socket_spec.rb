@@ -23,7 +23,7 @@ describe ZSS::Socket do
     subject { ZSS::Socket.new(config) }
 
     it('returns service response') do
-      @broker = run_broker(broker_frontend) do |msg|
+      @broker = run_broker_for_client(broker_frontend) do |msg|
         msg.status = 200
         msg.payload = "PONG"
       end
