@@ -1,4 +1,4 @@
-require 'zss/socket'
+require_relative 'socket'
 
 module ZSS
   class Client
