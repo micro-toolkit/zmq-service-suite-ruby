@@ -183,4 +183,18 @@ describe ZSS::Message do
 
   end
 
+  describe('.req?') do
+
+    it('returns true on request message') do
+      message.type = ZSS::Message::Type::REQ
+      expect(message.req?).to eq(true)
+    end
+
+    it('returns false on response message') do
+      message.type = ZSS::Message::Type::REP
+      expect(message.req?).to eq(false)
+    end
+
+  end
+
 end

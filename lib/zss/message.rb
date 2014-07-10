@@ -31,6 +31,10 @@ module ZSS
 
     end
 
+    def req?
+      type == Type::REQ
+    end
+
     def self.parse(frames)
 
       frames.unshift(nil) if frames.length == 7
