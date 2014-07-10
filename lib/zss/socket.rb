@@ -101,7 +101,9 @@ module ZSS
 
     def send_message socket, message
       frames = message.to_frames
-      first   = frames.shift
+
+      # if it's a reply should send identity
+      frames.shift if message.req?
       last   = frames.pop
       frames.each { |f| check! socket.send_string f.to_s, ZMQ::SNDMORE }
       check! socket.send_string last.to_s
