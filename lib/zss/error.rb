@@ -3,7 +3,8 @@ require 'json'
 module ZSS
   class Error < ::StandardError
 
-    attr_reader :code, :developer_message, :user_message
+    attr_reader :code, :user_message
+    attr_accessor :developer_message
 
     def initialize(code, payload)
       @code = code.to_i
