@@ -16,7 +16,8 @@ describe ZSS::Client do
   end
 
   after :each do
-    @broker.terminate if @broker
+    return unless @broker
+    @broker.join
     @broker = nil
   end
 

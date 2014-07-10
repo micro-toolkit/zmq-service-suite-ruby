@@ -14,7 +14,8 @@ describe ZSS::Socket do
   let(:message) { ZSS::Message.new(address: address, payload: "PING") }
 
   after :each do
-    @broker.terminate if @broker
+    return unless @broker
+    @broker.join
     @broker = nil
   end
 
