@@ -21,7 +21,7 @@ module ZSS
         headers: headers,
         payload: payload)
 
-      response = socket.call(request)
+      response = socket.call(request, timeout)
       fail ZSS::Error.new(response.status, response.payload) if response.is_error?
 
       response.payload
@@ -29,10 +29,12 @@ module ZSS
 
     private
 
-    def method_missing method, payload = nil, headers: {}
+    def method_missing method, *args
       # since we cannot use / on method names we replace _ with /
       verb = method.to_s.gsub('_', '/')
-      call verb, payload, headers: headers
+      payload = args[0]      
+      options = args[1] || {}
+      call verb, payload, options
     end
 
     def socket
