@@ -21,8 +21,8 @@ module ZSS
       response = nil
       t = (call_timeout || timeout) / 1000.0
 
-      context_internal do |ctx|
-        socket_internal ctx do |sock|
+      context do |ctx|
+        socket ctx do |sock|
           begin
             ::Timeout.timeout t do
               send_message sock, request
@@ -37,66 +37,25 @@ module ZSS
       response
     end
 
-    def connect
-      ctx = create_context
-      connect_socket(ctx)
-    end
-
-    def disconnect
-      disconnect_socket
-      disconnect_context
-    end
-
-    def send message
-      send_message(open_socket, message)
-    end
-
-    def receive
-      receive_message(open_socket)
-    end
-
     private
 
-    attr_reader :open_context, :open_socket
-
-    def create_context
-      @open_context = ZMQ::Context.create(1)
-      fail Socket::Error, 'failed to create create_context' unless open_context
-      open_context
+    def context
+      ctx = ZMQ::Context.create(1)
+      fail Socket::Error, 'failed to create create_context' unless ctx
+      yield ctx
+    ensure
+      check!(ctx.terminate) if ctx
     end
 
-    def disconnect_context
-      check!(open_context.terminate) if open_context
-      @open_context = nil
-    end
-
-    def connect_socket context
+    def socket(context)
       socket = context.socket ZMQ::DEALER
       fail Socket::Error, 'failed to create socket' unless socket
       socket.identity = "#{identity}##{SecureRandom.uuid}"
       socket.setsockopt(ZMQ::LINGER, 0)
       socket.connect(socket_address)
-      @open_socket = socket
-      socket
-    end
-
-    def disconnect_socket
-      check!(open_socket.close) if open_socket
-      @open_socket = nil
-    end
-
-    def context_internal
-      ctx = create_context
-      yield ctx
-    ensure
-      disconnect_context
-    end
-
-    def socket_internal(context)
-      socket = connect_socket(context)
       yield socket
     ensure
-      disconnect_socket
+      check!(socket.close) if socket
     end
 
     def send_message socket, message
