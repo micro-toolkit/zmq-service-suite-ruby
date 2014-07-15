@@ -29,5 +29,6 @@ Gem::Specification.new do |spec|
   spec.add_dependency 'ffi-rzmq'
   spec.add_dependency 'activesupport'
   spec.add_dependency 'hashie'
+  spec.add_dependency 'daemons'
   spec.add_dependency 'em-zeromq'
 end
