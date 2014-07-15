@@ -5,11 +5,11 @@ module ZSS
 
     attr_reader :sid, :frontend, :identity, :timeout
 
-    def initialize sid, config = nil
-      @frontend   = config.try(:frontend) || Configuration.default.frontend
+    def initialize sid, config = {}
+      @frontend   = config[:frontend] || Configuration.default.frontend
       @sid      = sid.to_s.upcase
-      @identity = config.try(:identity) || "client"
-      @timeout  = config.try(:timeout) || 1000
+      @identity = config[:identity] || "client"
+      @timeout  = config[:timeout] || 1000
     end
 
     def call verb, payload = nil, headers: {}, timeout: nil
