@@ -12,8 +12,8 @@ module ZSS
       @timeout  = config[:timeout] || 1000
     end
 
-    def call verb, payload = nil, headers: {}, timeout: nil
       action = verb.to_s.upcase#.gsub('_', '/')
+    def call verb, payload, headers: {}, timeout: nil
       address = Message::Address.new(sid: sid, verb: action)
 
       request = Message.new(
