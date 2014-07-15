@@ -3,6 +3,7 @@ PATH
   specs:
     zss (0.0.2)
       activesupport
+      em-zeromq
       ffi-rzmq
       hashie
       msgpack
@@ -22,16 +23,21 @@ GEM
     coderay (1.1.0)
     diff-lcs (1.2.5)
     docile (1.1.5)
+    em-zeromq (0.5.0)
+      eventmachine (>= 1.0.0)
+      ffi (>= 1.0.0)
+      ffi-rzmq (~> 2.0.1)
+    eventmachine (1.0.3)
     ffi (1.9.3)
     ffi-rzmq (2.0.1)
       ffi-rzmq-core (>= 1.0.1)
     ffi-rzmq-core (1.0.3)
       ffi (~> 1.9)
-    hashie (3.1.0)
-    i18n (0.6.9)
+    hashie (3.2.0)
+    i18n (0.6.11)
     json (1.8.1)
     method_source (0.8.2)
-    minitest (5.3.5)
+    minitest (5.4.0)
     msgpack (0.5.8)
     multi_json (1.10.1)
     pry (0.10.0)

@@ -1,5 +1,6 @@
 require 'spec_helper'
 require 'spec_broker_helper'
+require 'em-zeromq'
 require 'zss/service'
 
 describe ZSS::Service do
@@ -25,41 +26,23 @@ describe ZSS::Service do
 
   let(:message) { ZSS::Message.new(address: address, payload: "PING") }
 
-  after :each do
-    return unless @broker
-    @broker.join
-    @broker = nil
-  end
-
   subject { described_class.new(:pong, config) }
 
   it('handles request') do
-    @broker = run_broker_for_service(broker_backend, message) do |msg|
-      expect(msg.payload).to eq("PONG")
-      expect(msg.status).to eq(200)
-      # this will allow stop service thread and
-      # not to block broker thread
-      Thread.new { subject.stop }
+    EM.run do
+      run_broker_for_service(broker_backend, message) do |msg|
+        expect(msg.payload).to eq("PONG")
+        expect(msg.status).to eq(200)
+        expect(msg.headers).to eq({ "took" => "0s" })
+        subject.stop
+        EM.stop
+      end
+
+      service = DummyService.new
+      subject.add_route(service, :ping)
+      subject.run
     end
 
-    service = DummyService.new
-    subject.add_route(service, :ping)
-    subject.run
   end
 
-  it('send heartbeat msg') do
-    config.heartbeat = 200
-    subject = described_class.new(:pong, config)
-    @broker = run_broker_for_service(broker_backend) do |msg|
-      expect(msg.address.sid).to eq("SMI")
-      expect(msg.address.verb).to eq("HEARTBEAT")
-      # this will allow stop service thread and
-      # not to block broker thread
-      Thread.new { subject.stop }
-    end
-
-    service = DummyService.new
-    subject.add_route(service, :ping)
-    subject.run
-  end
 end

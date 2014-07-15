@@ -1,6 +1,7 @@
 require 'spec_helper'
+require 'zss'
 require 'zss/service'
-require 'zss/socket'
+require 'em-zeromq'
 
 describe ZSS::Service do
 
@@ -24,8 +25,27 @@ describe ZSS::Service do
     end
   end
 
-  before(:each) do
+  def done
+    subject.stop
+    EM.stop
+  end
+
+  let(:context) { double('EM::ZeroMQ::Context').as_null_object }
+  let(:socket) { double('EM::ZMQ::Socket').as_null_object }
+
+  before :each do
+    allow(EM::ZeroMQ::Context).to receive(:new) { context }
+    allow(context).to receive(:socket) { socket }
     allow(SecureRandom).to receive(:uuid) { "uuid" }
+    config.heartbeat = 60000
+  end
+
+  after :each do
+    EM.stop if EM.reactor_running?
+  end
+
+  subject do
+    described_class.new(:pong, config)
   end
 
   describe('#ctor') do
@@ -62,46 +82,57 @@ describe ZSS::Service do
 
   describe('#run') do
 
-    let(:socket) { double('Socket').as_null_object }
-    let(:zmq_socket) { double('ZMQ::Socket').as_null_object }
+    context('on error') do
 
-    before :each do
-      @last = nil
-      allow(ZSS::Socket).to receive(:new) { socket }
-      allow(socket).to receive(:connect) { zmq_socket }
-      # store last message to retrieve on receive
-      allow(socket).to receive(:send) { |m| @last = m }
-      # return last message first time and stop after
-      allow(socket).to receive(:receive) do
-
-        if msg = @last
-          @last = nil
-          msg.status = 200
-          msg.type = ZSS::Message::Type::REP
-        else
-          subject.stop
-        end
-
-        msg
+      it('raises RuntimeError on invalid context') do
+        expect(EM::ZeroMQ::Context).to receive(:new) { nil }
+        expect { subject.run }.to raise_exception(RuntimeError)
       end
+
+      it('raises RuntimeError on invalid socket') do
+        expect(context).to receive(:socket) { nil }
+        expect { subject.run }.to raise_exception(RuntimeError)
+      end
+
     end
 
-    subject do
-      described_class.new(:pong, config)
-    end
+    context('open ZMQ Socket') do
 
-    it('connects a socket') do
-      expect(socket).to receive(:connect)
-      subject.run
+      it('with dealer type') do
+        expect(context).to receive(:socket).with(ZMQ::DEALER) do
+          done
+          socket
+        end
+        subject.run
+      end
+
+      it('with identity set') do
+        expect(socket).to receive(:identity=).with("pong#uuid") { done }
+        subject.run
+      end
+
+      it('with linger set to 0') do
+        expect(socket).to receive(:setsockopt).with(ZMQ::LINGER, 0) { done }
+        subject.run
+      end
+
+      it('connect to socket address') do
+        expect(socket).to receive(:connect).with(socket_address) { done }
+        subject.run
+      end
+
     end
 
     it('register service on broker') do
-      expect(socket).to receive(:send) do |message|
-        @last = message
+      expect(socket).to receive(:send_msg) do |*frames|
+        message = ZSS::Message.parse(frames)
         expect(message.address.sid).to eq('SMI')
         expect(message.address.verb).to eq('UP')
         expect(message.payload).to eq('PONG')
+        done
+        true
       end
+
       subject.run
     end
 
@@ -111,174 +142,171 @@ describe ZSS::Service do
 
       let(:message) { ZSS::Message.new(address: address, payload: "PING") }
 
-      before :each do
-        allow(ZSS::Socket).to receive(:new) { socket }
-        allow(socket).to receive(:connect) { zmq_socket }
-        allow(socket).to receive(:send)
-        message.rid = "req-uuid"
+      let :message_parts do
+        message.to_frames.map { |f| ZMQ::Message.new(f) }
       end
 
       it('returns payload and headers') do
-
-        # reply to up, receive request and reply to down
-        allow(socket).to receive(:receive) do
-          if msg = @last
-            @last = nil
-            msg.status = 200
-            msg.type = ZSS::Message::Type::REP
-          elsif !@request_send
-            message.address.verb = "PING"
-            msg = message
-          end
-
-          msg
-        end
-        # receive up, reply
-        expect(socket).to receive(:send).exactly(2).times do |msg|
-          @last = msg
-          if msg.rid == message.rid
-            expect(msg.status).to eq(200)
-            expect(msg.payload).to eq("PONG")
-            expect(msg.headers).to eq({ took: "0s" })
-            subject.stop
-          end
-        end
-
         service = DummyService.new
         subject.add_route(service, :ping)
 
-        subject.run
+        EM.run do
+          allow(socket).to receive(:on) do |event, &block|
+            EM.add_timer { block.call *message_parts }
+          end
+
+          subject.run
+
+          expect(socket).to receive(:send_msg) do |*frames|
+            message = ZSS::Message.parse(frames)
+
+            expect(message.type).to eq(ZSS::Message::Type::REP)
+            expect(message.status).to eq(200)
+            expect(message.headers).to eq({ "took" => "0s" })
+
+            done
+
+            true
+          end
+        end
+
       end
 
       context('on error') do
 
         it('returns 404 on invalid sid') do
-          # reply to up, receive request and reply to down
-          allow(socket).to receive(:receive) do
-            if msg = @last
-              @last = nil
-              msg.status = 200
-              msg.type = ZSS::Message::Type::REP
-            elsif !@request_send
-              message.address.sid = "something"
-              msg = message
+          message.address.sid = "something"
+
+          EM.run do
+            allow(socket).to receive(:on) do |event, &block|
+              EM.add_timer { block.call *message_parts }
             end
 
-            msg
-          end
-          # receive up, reply
-          expect(socket).to receive(:send).exactly(2).times do |msg|
-            @last = msg
-            if msg.rid == message.rid
-              expect(msg.status).to eq(404)
-              subject.stop
+            subject.run
+
+            expect(socket).to receive(:send_msg) do |*frames|
+              message = ZSS::Message.parse(frames)
+
+              expect(message.type).to eq(ZSS::Message::Type::REP)
+              expect(message.status).to eq(404)
+
+              done
+
+              true
             end
           end
 
-          subject.run
         end
 
         it('returns 404 on invalid verb') do
-          # reply to up, receive request and reply to down
-          allow(socket).to receive(:receive) do
-            if msg = @last
-              @last = nil
-              msg.status = 200
-              msg.type = ZSS::Message::Type::REP
-            elsif !@request_send
-              message.address.verb = "something"
-              msg = message
+
+          message.address.verb = "something"
+
+          EM.run do
+            allow(socket).to receive(:on) do |event, &block|
+              EM.add_timer { block.call *message_parts }
             end
 
-            msg
-          end
-          # receive up, reply
-          expect(socket).to receive(:send).exactly(2).times do |msg|
-            @last = msg
-            if msg.rid == message.rid
-              expect(msg.status).to eq(404)
-              subject.stop
+            subject.run
+
+            expect(socket).to receive(:send_msg) do |*frames|
+              message = ZSS::Message.parse(frames)
+
+              expect(message.type).to eq(ZSS::Message::Type::REP)
+              expect(message.status).to eq(404)
+
+              done
+
+              true
             end
           end
 
-          subject.run
         end
 
         it('returns 500 when an error occurred while handling request') do
-          # reply to up, receive request and reply to down
-          allow(socket).to receive(:receive) do
-            if msg = @last
-              @last = nil
-              msg.status = 200
-              msg.type = ZSS::Message::Type::REP
-            elsif !@request_send
-              message.address.verb = "PING/FAIL"
-              msg = message
-            end
-
-            msg
-          end
-          # receive up, reply
-          expect(socket).to receive(:send).exactly(2).times do |msg|
-            @last = msg
-            if msg.rid == message.rid
-              expect(msg.status).to eq(500)
-              subject.stop
-            end
-          end
 
           service = DummyService.new
           subject.add_route(service, "PING/FAIL", :ping_fail)
+          message.address.verb = "PING/FAIL"
 
-          subject.run
+          EM.run do
+            allow(socket).to receive(:on) do |event, &block|
+              EM.add_timer { block.call *message_parts }
+            end
+
+            subject.run
+
+            expect(socket).to receive(:send_msg) do |*frames|
+              message = ZSS::Message.parse(frames)
+
+              expect(message.type).to eq(ZSS::Message::Type::REP)
+              expect(message.status).to eq(500)
+
+              done
+
+              true
+            end
+          end
+
         end
 
       end
 
+    end
+
+    it('sends heartbeat message') do
+      config.heartbeat = 500
+      subject = described_class.new(:pong, config)
+
+      EM.run do
+
+        subject.run
+
+        expect(socket).to receive(:send_msg) do |*frames|
+          message = ZSS::Message.parse(frames)
+
+          expect(message.type).to eq(ZSS::Message::Type::REQ)
+          expect(message.address.sid).to eq('SMI')
+          expect(message.address.verb).to eq('HEARTBEAT')
+          expect(message.payload).to eq('PONG')
+
+          done
+
+          true
+        end
+      end
     end
 
   end
 
   describe('#stop') do
 
-    let(:socket) { double('Socket').as_null_object }
-    let(:zmq_socket) { double('ZMQ::Socket').as_null_object }
-
-    subject do
-      described_class.new(:pong, config)
-    end
-
-    before :each do
-      allow(ZSS::Socket).to receive(:new) { socket }
-      allow(socket).to receive(:connect) { zmq_socket }
-      allow(socket).to receive(:send)
-      @runner = Thread.new do
-        subject.run
-      end
-      # force previous thread to run
-      sleep(0.1)
-    end
-
-    after :each do
-      return unless @runner
-      @runner.join(0.5)
-      @runner.terminate
-      @runner = nil
-    end
-
     it('disconnects the socket') do
-      expect(socket).to receive(:disconnect)
-      subject.stop
+      EM.run do
+        subject.run
+
+        expect(socket).to receive(:disconnect) { done }
+
+        subject.stop
+      end
     end
 
     it('unregister service on broker') do
-      expect(socket).to receive(:send) do |message|
-        expect(message.address.sid).to eq('SMI')
-        expect(message.address.verb).to eq('DOWN')
-        expect(message.payload).to eq('PONG')
-        message
+      EM.run do
+
+        subject.run
+
+        expect(socket).to receive(:send_msg) do |*frames|
+          message = ZSS::Message.parse(frames)
+          expect(message.address.sid).to eq('SMI')
+          expect(message.address.verb).to eq('DOWN')
+          expect(message.payload).to eq('PONG')
+          done
+          1
+        end
+
+        subject.stop
       end
-      subject.stop
     end
 
   end

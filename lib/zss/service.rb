@@ -1,11 +1,11 @@
-require_relative 'socket'
+require 'em-zeromq'
 require_relative 'router'
 require_relative 'message/smi'
 
 module ZSS
   class Service
 
-    attr_reader :sid, :heartbeat, :backend
+    attr_reader :sid, :heartbeat, :backend, :identity
 
     def initialize(sid, config = {})
 
@@ -14,22 +14,38 @@ module ZSS
       @sid = sid.to_s.upcase
       @heartbeat = config.try(:heartbeat) || 1000
       @backend   = config.try(:backend) || Configuration.default.backend
-
-      config = Hashie::Mash.new(
-        socket_address: @backend,
-        identity: @sid.downcase
-      )
-      @socket = Socket.new config
       @router = ZSS::Router.new
+      @identity = "#{sid}##{SecureRandom.uuid}"
     end
 
     def run
-      #puts "Starting SID: '#{sid}' ID: '#{socket.identity}'"
-      #puts "Env: #{ZSS::Environment.env}"
-      #puts "Broker: #{backend}"
+      Thread.abort_on_exception = true
 
-      start_service
+      context = EM::ZeroMQ::Context.new(1)
+      fail RuntimeError, 'failed to create create_context' unless context
 
+      # puts "Starting SID: '#{sid}' ID: '#{identity}'"
+      # puts "Env: #{ZSS::Environment.env}"
+      # puts "Broker: #{backend}"
+
+      EM.run do
+        # handle interrupts
+        Signal.trap("INT") { stop }
+        Signal.trap("TERM") { stop }
+
+        connect_socket context
+
+        # start heartbeat worker
+        @timer = EventMachine::PeriodicTimer.new(heartbeat / 1000) do
+          # if EM.reactor_running?
+            send Message::SMI.heartbeat(sid)
+          # end
+        end
+
+        # send up message
+        send Message::SMI.up(sid)
+
+      end
     end
 
     def add_route(context, route, handler = nil)
@@ -37,78 +53,41 @@ module ZSS
     end
 
     def stop
-      #puts "Stoping SID: '#{sid}' ID: '#{socket.identity}'"
-      stop_service
+      timer.cancel if timer
+
+      # puts "Stoping SID: '#{sid}' ID: '#{socket.identity}'"
+      EM.add_timer do
+        send Message::SMI.down(sid)
+        socket.disconnect backend
+        EM::stop
+      end
     end
 
     private
 
-    attr_accessor :socket, :connected_socket,
-      :heartbeat_worker, :receiver_worker,
-      :running, :router
+    attr_accessor :socket, :router, :timer
 
-    def start_service
-      socket.connect
-      socket.send Message::SMI.up(sid)
-      message = socket.receive
-      #puts "broker replied to: #{message.address.sid}:#{message.address.verb} with #{message.status}"
-      @running = true
-      start_receiver_worker
-      start_heartbeat_worker
+    def connect_socket(context)
 
-      receiver_worker.join
+      @socket = context.socket ZMQ::DEALER
+      fail RuntimeError, 'failed to create socket' unless socket
+
+      socket.identity = identity
+      socket.setsockopt(ZMQ::LINGER, 0)
+      socket.on(:message, &method(:handle_frames))
+
+      socket.connect(backend)
     end
 
-    def stop_service
-      return unless running
-
-      @running = false
-      receiver_worker.terminate if receiver_worker
-      heartbeat_worker.terminate if heartbeat_worker
-      socket.send Message::SMI.down(sid)
-      message = socket.receive
-      #puts "broker replied to: #{message.address.sid}:#{message.address.verb} with #{message.status}"
-      socket.disconnect
-    end
-
-    def start_heartbeat_worker
-
-      @heartbeat_worker = Thread.new do
-        Thread.handle_interrupt(RuntimeError => :immediate) do
-
-          loop do
-            begin
-              # heartbeat is in ms and sleep receives seconds
-              sleep(heartbeat / 1000.0)
-              #puts "sending heartbeat..."
-              socket.send Message::SMI.heartbeat(sid)
-            rescue => e
-              #puts "Heartbeat blow => #{e}"
-            end
-          end
-        end
+    def handle_frames(*frames)
+      # we need to close frame to avoid memory leaks
+      frames = frames.map do |frame|
+        out_frame = frame.copy_out_string
+        frame.close
+        out_frame
       end
 
-    end
-
-    def start_receiver_worker
-
-      @receiver_worker = Thread.new do
-        Thread.handle_interrupt(RuntimeError => :immediate) do
-
-          while running do
-            message = socket.receive
-
-            if message
-              handle message
-            #else
-              #puts "error: something wrong received a nil message from socket"
-            end
-          end
-
-        end
-      end
-
+      handle Message.parse(frames)
     end
 
     def handle(message)
@@ -135,7 +114,6 @@ module ZSS
       # the router returns an handler that receives payload and headers
       handler = router.get(message.address.verb)
       message.payload = handler.call(message.payload, message.headers)
-      message.status = 200
       reply message
     end
 
@@ -146,15 +124,24 @@ module ZSS
         userMessage: error.user_message,
         developerMessage: error.developer_message
       }
-      reply message
+      message.type = Message::Type::REP
+      send message
     end
 
     def reply(message)
       #puts "reply #{message}"
+      message.status = 200
       message.type = Message::Type::REP
-      socket.send message
+      send message
     end
 
+    def send(msg)
+      frames = msg.to_frames
+      #remove identity frame on request
+      frames.shift if msg.req?
+      success = socket.send_msg(*frames)
+      puts "An Error ocurred while sending message" unless success
+    end
 
   end
 end

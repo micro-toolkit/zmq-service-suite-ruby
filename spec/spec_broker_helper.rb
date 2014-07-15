@@ -1,4 +1,4 @@
-require 'ffi-rzmq'
+require 'em-zeromq'
 require 'msgpack'
 
 module BrokerHelper
@@ -48,73 +48,53 @@ module BrokerHelper
   end
 
   def run_broker_for_service(endpoint, send_message = nil)
+    context = EM::ZeroMQ::Context.new(1)
+    socket = context.socket(ZMQ::ROUTER)
+    socket.setsockopt(ZMQ::LINGER, 0)
+    socket.on(:message) do |*frames|
+      frames = get_frames_and_close_message(frames)
+      puts "broker received #{frames}" if LOG_BROKER_INFO
+      service_id = frames.shift if frames.length == 9
+      msg = ZSS::Message.parse(frames)
 
-    Thread.new do
-      puts "broker running" if LOG_BROKER_INFO
-
-      Thread.handle_interrupt(RuntimeError => :immediate) do
-
-        begin
-          context = ZMQ::Context.create
-          socket = context.socket ZMQ::ROUTER
-          socket.setsockopt(ZMQ::LINGER, 0)
-          socket.bind(endpoint)
-          puts "broker connected" if LOG_BROKER_INFO
-
-          puts "broker waiting up" if LOG_BROKER_INFO
-          identity = wait_for_up_and_reply(socket)
-
-          if send_message
-            send_message.identity = identity
-            puts "broker sending emulated client request" if LOG_BROKER_INFO
-            # emulate client request
-            socket.send_strings(send_message.to_frames)
-          end
-
-          puts "broker wait for response" if LOG_BROKER_INFO
-          socket.recv_strings(frames = [])
-          #reply to broker client identity to route
-          frames.shift
-          puts "broker received #{frames}" if LOG_BROKER_INFO
-
-          msg = ZSS::Message.parse(frames)
-          yield(msg) if block_given?
-
-          puts "broker wait down" if LOG_BROKER_INFO
-          wait_for_down_and_reply(socket)
-        rescue => e
-          puts "WTF => #{e} : #{e.backtrace}"
-        ensure
-          # You can write resource deallocation code safely.
-          puts "broker stoping" if LOG_BROKER_INFO
-          socket.close if socket
-          context.terminate if context
-        end
+      if msg.address.sid == 'SMI'
+        handle_smi_verbs(socket, msg, send_message)
+      else
+        puts "check service response" if LOG_BROKER_INFO
+        yield(msg) if block_given?
       end
 
     end
 
+    socket.bind(endpoint)
   end
 
   private
 
-  def wait_for_up_and_reply(socket)
-    socket.recv_strings(frames = [])
-    msg = ZSS::Message.parse(frames)
-    # reply with 200
-    msg.status = 200
-    msg.type = ZSS::Message::Type::REP
-    socket.send_strings(msg.to_frames)
-    msg.identity
+  def handle_smi_verbs(socket, msg, send_message)
+
+    if msg.address.verb == 'UP'
+      msg.status = 200
+      msg.type = ZSS::Message::Type::REP
+      puts "broker reply to UP" if LOG_BROKER_INFO
+      socket.send_msg(*msg.to_frames)
+
+      if send_message
+        send_message.identity = msg.identity
+        puts "broker sending emulated client request" if LOG_BROKER_INFO
+        # emulate client request
+        socket.send_msg(*send_message.to_frames)
+      end
+
+    end
   end
 
-  def wait_for_down_and_reply(socket)
-    socket.recv_strings(frames = [])
-    msg = ZSS::Message.parse(frames)
-    # reply with 200
-    msg.status = 200
-    msg.type = ZSS::Message::Type::REP
-    socket.send_strings(msg.to_frames)
+  def get_frames_and_close_message(frames)
+    frames.map do |frame|
+      out_frame = frame.copy_out_string
+      frame.close
+      out_frame
+    end
   end
 
 end
