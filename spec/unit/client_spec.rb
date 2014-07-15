@@ -52,7 +52,7 @@ describe ZSS::Client do
             timeout: 1000
           )
         )
-      subject.call(:ping)
+      subject.call(:ping, nil)
     end
 
     context('on success') do
