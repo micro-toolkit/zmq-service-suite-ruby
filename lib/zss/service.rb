@@ -35,16 +35,10 @@ module ZSS
 
         connect_socket context
 
-        # start heartbeat worker
-        @timer = EventMachine::PeriodicTimer.new(heartbeat / 1000) do
-          # if EM.reactor_running?
-            send Message::SMI.heartbeat(sid)
-          # end
-        end
+        start_heartbeat_worker
 
         # send up message
         send Message::SMI.up(sid)
-
       end
     end
 
@@ -77,6 +71,12 @@ module ZSS
       socket.on(:message, &method(:handle_frames))
 
       socket.connect(backend)
+    end
+
+    def start_heartbeat_worker
+      @timer = EventMachine::PeriodicTimer.new(heartbeat / 1000) do
+        send Message::SMI.heartbeat(sid)
+      end
     end
 
     def handle_frames(*frames)
