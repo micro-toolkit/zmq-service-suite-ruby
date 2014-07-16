@@ -6,8 +6,7 @@
 
 # ZMQ SOA Suite - Ruby Client &amp; Service
 
-For now protocol description is under node js implementation and will be moved soon to a proper place.
-https://github.com/pjanuario/zmq-service-suite
+This project is a ruby client&service implementation for [ZMQ Service Suite](http://pjanuario.github.io/zmq-service-suite-specs/).
 
 ## Installation
 
