@@ -81,7 +81,7 @@ We use [bump gem](https://github.com/gregorym/bump) to control gem versioning.
 
 Bump Patch version
 
-    $ bump minor
+    $ bump patch
 
 Bump Minor version
 
