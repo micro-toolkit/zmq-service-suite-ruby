@@ -8,8 +8,13 @@ Gem::Specification.new do |spec|
   spec.authors       = ["Pedro Januário"]
   spec.email         = ["prnjanuario@gmail.com"]
   spec.description   = %q{ZeroMQ SOA Suite}
-  spec.summary       = %q{ZeroMQ SOA Suite}
+  spec.summary       = %q{This project is a ruby client&service implementation for ZMQ Service Suite,
+                          check http://pjanuario.github.io/zmq-service-suite-specs/ for more info.}
   spec.homepage      = "https://github.com/pjanuario/zmq-service-suite-ruby"
+  spec.metadata      = {
+    "source_code" => "https://github.com/pjanuario/zmq-service-suite-ruby",
+    "issue_tracker" => "https://github.com/pjanuario/zmq-service-suite-ruby/issues"
+  }
   spec.license       = "MIT"
 
   spec.files         = `git ls-files`.split($/)
