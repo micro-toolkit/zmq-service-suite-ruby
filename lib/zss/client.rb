@@ -32,7 +32,7 @@ module ZSS
     def method_missing method, *args
       # since we cannot use / on method names we replace _ with /
       verb = method.to_s.gsub('_', '/')
-      payload = args[0]      
+      payload = args[0]
       options = args[1] || {}
       call verb, payload, options
     end
