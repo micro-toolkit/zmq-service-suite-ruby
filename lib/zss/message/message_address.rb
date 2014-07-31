@@ -12,6 +12,9 @@ module ZSS
         @verb     = args[:verb].try(:upcase)
         @sversion = args[:sversion].try(:upcase) || '*'
       end
+
+      def to_s
+        "#{sid}:#{sversion}##{verb}"
       end
 
     end

@@ -20,4 +20,12 @@ describe ZSS::Message::Address do
 
   end
 
+  describe("#to_s") do
+
+    it('returns a address in string format') do
+      actual = described_class.new sid: "service", verb: "verb", sversion: 'v.1'
+      expect(actual.to_s).to eq("SERVICE:V.1#VERB")
+    end
+  end
+
 end
