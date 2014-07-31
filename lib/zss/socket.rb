@@ -4,6 +4,8 @@ require 'timeout'
 module ZSS
   class Socket
 
+    include LoggerFacade::Loggable
+
     class Error        < StandardError; end
     class TimeoutError < Socket::Error; end
 
@@ -25,10 +27,16 @@ module ZSS
         socket ctx do |sock|
           begin
             ::Timeout.timeout t do
+
+              log.debug("Request #{request.rid} sent to #{request.address} with #{t}s timeout")
               send_message sock, request
+
+              log.debug("Waiting for #{request.rid}")
               response = receive_message(sock)
+
             end
           rescue ::Timeout::Error
+            log.debug("Request #{request.rid} exit with timeout after #{t}s")
             raise ZSS::Socket::TimeoutError, "call timeout after #{t}s"
           end
         end
@@ -53,12 +61,18 @@ module ZSS
       socket.identity = "#{identity}##{SecureRandom.uuid}"
       socket.setsockopt(ZMQ::LINGER, 0)
       socket.connect(socket_address)
+
+      log.debug("#{socket.identity} connected to #{socket_address}")
+
       yield socket
     ensure
       check!(socket.close) if socket
     end
 
     def send_message socket, message
+
+      log.debug("\n #{message}") if log.is_debug
+
       frames = message.to_frames
 
       # if it's a reply should send identity
@@ -70,7 +84,11 @@ module ZSS
 
     def receive_message socket
       check! socket.recv_strings(frames = [])
-      Message.parse frames
+      message = Message.parse frames
+
+      log.debug("\n #{message}") if log.is_debug
+
+      message
     end
 
     def check! result_code

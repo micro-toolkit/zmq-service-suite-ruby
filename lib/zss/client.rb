@@ -3,6 +3,8 @@ require_relative 'socket'
 module ZSS
   class Client
 
+    include LoggerFacade::Loggable
+
     attr_reader :sid, :frontend, :identity, :timeout
 
     def initialize sid, config = {}
@@ -21,7 +23,12 @@ module ZSS
         headers: headers,
         payload: payload)
 
+      log.info("Request #{request.rid} sent to #{request.address} with #{timeout}s timeout")
+
       response = socket.call(request, timeout)
+
+      log.info("Received response to #{request.rid} with status #{response.status}")
+
       fail ZSS::Error.new(response.status, response.payload) if response.is_error?
 
       response.payload

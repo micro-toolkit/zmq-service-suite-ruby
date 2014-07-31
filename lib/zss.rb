@@ -3,6 +3,8 @@ require 'active_support/string_inquirer'
 require 'active_support/core_ext/object'
 require 'active_support/core_ext/hash/indifferent_access'
 
+require 'logger_facade'
+
 require_relative 'zss/version'
 require_relative 'zss/environment'
 require_relative 'zss/configuration'
