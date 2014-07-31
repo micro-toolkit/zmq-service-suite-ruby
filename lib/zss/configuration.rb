@@ -3,8 +3,8 @@ module ZSS
 
     def self.default
       Hashie::Mash.new(
-        frontend: 'tcp://127.0.0.1:5560',
-        backend:  'tcp://127.0.0.1:5559'
+        frontend: 'tcp://127.0.0.1:7777',
+        backend:  'tcp://127.0.0.1:7776'
       )
     end
 
