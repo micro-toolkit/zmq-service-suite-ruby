@@ -5,6 +5,8 @@ require_relative 'message/smi'
 module ZSS
   class Service
 
+    include LoggerFacade::Loggable
+
     attr_reader :sid, :heartbeat, :backend, :identity
 
     def initialize(sid, config = {})
@@ -24,9 +26,7 @@ module ZSS
       context = EM::ZeroMQ::Context.new(1)
       fail RuntimeError, 'failed to create create_context' unless context
 
-      # puts "Starting SID: '#{sid}' ID: '#{identity}'"
-      # puts "Env: #{ZSS::Environment.env}"
-      # puts "Broker: #{backend}"
+      log.info("Starting SID: '#{sid}' ID: '#{identity}' Env: '#{ZSS::Environment.env}' Broker: '#{backend}'")
 
       EM.run do
         # handle interrupts
@@ -49,8 +49,10 @@ module ZSS
     def stop
       timer.cancel if timer
 
-      # puts "Stoping SID: '#{sid}' ID: '#{socket.identity}'"
       EM.add_timer do
+
+        log.info("Stoping SID: '#{sid}' ID: '#{socket.identity}'")
+
         send Message::SMI.down(sid)
         socket.disconnect backend
         EM::stop
@@ -93,18 +95,21 @@ module ZSS
     def handle(message)
       if message.req?
         handle_request(message)
-      #else
-        # puts "heartbeat response received!"
+      else
+        log.trace("SMI response received: \n #{message}") if log.is_debug
       end
     rescue ZSS::Error => error
-      #puts "Erorr: ZSS::Error raised while processing request: #{e}"
+      log.error("ZSS::Error raised while processing request: #{error}")
       reply_error error, message
     rescue => e
-      #puts "Error while processing request: #{e}"
+      log.error("Unexpected error occurred while processing request: #{e}")
       reply_error Error[500], message
     end
 
     def handle_request(message)
+      log.info("Handle request for #{message.address}")
+      log.debug("Request message:\n #{message}") if log.is_debug
+
       if message.address.sid != sid
         error = Error[404]
         error.developer_message = "Invalid SID: #{message.address.sid}!"
@@ -129,18 +134,23 @@ module ZSS
     end
 
     def reply(message)
-      #puts "reply #{message}"
       message.status = 200
       message.type = Message::Type::REP
+
+      log.info("Reply with status: #{message.status}")
+      log.debug("Reply with message:\n #{message}") if log.is_debug
+
       send message
     end
 
     def send(msg)
+      log.trace("sending: \n #{msg}") if log.is_debug
+
       frames = msg.to_frames
       #remove identity frame on request
       frames.shift if msg.req?
       success = socket.send_msg(*frames)
-      puts "An Error ocurred while sending message" unless success
+      log.error("An Error ocurred while sending message") unless success
     end
 
   end
