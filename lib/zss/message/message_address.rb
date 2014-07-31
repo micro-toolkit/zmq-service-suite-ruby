@@ -10,7 +10,8 @@ module ZSS
       def initialize args = {}
         @sid      = args[:sid].try(:upcase)
         @verb     = args[:verb].try(:upcase)
-        @sversion = args[:sversion] || '*'
+        @sversion = args[:sversion].try(:upcase) || '*'
+      end
       end
 
     end

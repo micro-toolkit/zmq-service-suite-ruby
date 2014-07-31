@@ -62,7 +62,7 @@ describe ZSS::Message do
 
       it('returns a fullfilled message') do
 
-        address.sversion = "sversion"
+        address.sversion = "sversion".upcase
 
         actual = described_class.parse(frames)
 
