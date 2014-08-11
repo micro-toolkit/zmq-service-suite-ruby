@@ -196,6 +196,30 @@ ZSS::Runner.run(:pong)
 
 You running service example [here](https://github.com/pjanuario/zss-service-sample)
 
+### Returning errors
+
+Every exception that is raised by the service is shield and result on a response with status code 500 with default user and developer messages.
+
+The available errors dictionary is defined in [error.json](https://github.com/pjanuario/zmq-service-suite-ruby/blob/master/lib/zss/errors.json).
+
+**Raising different errors**
+
+```ruby
+raise Error[500]
+# or
+raise Error.new
+# or
+raise Error.new(500)
+# or with developer message override
+raise Error.new(500, "this message should helpfull for developer!")
+```
+When relevant errors should be raised be with developer messages!
+
+**New Error Types**
+
+New error types should be added to [error.json](https://github.com/pjanuario/zmq-service-suite-ruby/blob/master/lib/zss/errors.json) using pull request.
+
+
 ### ZSS Service Generation Rake
 
 [**#TODO**](https://github.com/pjanuario/zmq-service-suite-ruby/issues/11)
