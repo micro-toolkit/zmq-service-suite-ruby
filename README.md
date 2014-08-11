@@ -67,6 +67,25 @@ PongClient.call("ping/pong", "payload")
 
 ```
 
+### Client errors
+
+The client raises services errors using ZSS::Error class, with code, developer message and user message.
+
+```ruby
+require 'zss'
+
+PongClient = ZSS::Client.new(:pong)
+
+begin
+  PongClient.ping("payload")
+rescue ZSS::Error => error
+  puts "Status code: #{error.code}"
+  puts "User Message: #{error.user_message}"
+  puts "Developer Message: #{error.developer_message}"
+end
+
+```
+
 ## ZSS Service
 
 The ZSS Service is responsible for receiving ZSS Request and execute configured service handlers.
