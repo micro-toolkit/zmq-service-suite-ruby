@@ -139,12 +139,12 @@ describe ZSS::Client do
             userMessage: "user info",
             developerMessage: "dev info"
           )
-          msg.status = 500
+          msg.status = 999
           msg
         end
 
         expect { subject.call(:ping, "ping") }.to raise_exception(ZSS::Error) do |error|
-            expect(error.code).to eq(500)
+            expect(error.code).to eq(999)
         end
       end
 
