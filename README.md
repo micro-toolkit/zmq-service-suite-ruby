@@ -106,7 +106,7 @@ The ZSS Service is responsible for receiving ZSS Request and execute configured 
 ### Creating a new service step by step
 
 Let's create our first service sample, Ping-Pong, step by step.
-Note: For your next services you will be able to use [Service Generation rake](#ZSS-Service-Generation-Rake), but for now you learn what the rake does and why!
+Note: For your next services you will be able to use [Service Generation rake](#zss-service-generation-rake), but for now you learn what the rake does and why!
 
 * Create you service logic class, adding a pong_service.rb under /lib folder.
 
