@@ -30,7 +30,7 @@ module ZSS
 
       log.info("Received response to #{request.rid} with status #{response.status}")
 
-      fail ZSS::Error.new(response.status, response.payload) if response.is_error?
+      fail ZSS::Error.new(response.status, payload: response.payload) if response.is_error?
 
       response.payload
     end

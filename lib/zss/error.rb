@@ -6,9 +6,19 @@ module ZSS
     attr_reader :code, :user_message
     attr_accessor :developer_message
 
-    def initialize(code, payload)
+    def initialize(code = 500, developer_message = nil, payload: nil)
+
+      if payload
+        fail "Invalid error code: #{code}" if code.blank?
+      else
+        data = self.class.get_errors[code.to_s]
+        payload = data.body if data
+      end
+
+      fail "Invalid error with code: #{code}" unless payload
+
       @code = code.to_i
-      @developer_message = payload.developerMessage
+      @developer_message = developer_message || payload.developerMessage
       @user_message = payload.userMessage
       super @developer_message
       set_backtrace caller
