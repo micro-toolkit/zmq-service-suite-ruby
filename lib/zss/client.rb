@@ -1,3 +1,4 @@
+require_relative '../zss'
 require_relative 'socket'
 
 module ZSS

@@ -1,4 +1,5 @@
 require 'em-zeromq'
+require_relative '../zss'
 require_relative 'router'
 require_relative 'message/smi'
 
