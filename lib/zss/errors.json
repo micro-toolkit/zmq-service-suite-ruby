@@ -32,6 +32,14 @@
       "errorCode": 404
     }
   },
+  "409": {
+   "code": 409,
+   "body": {
+     "developerMessage": "There is a conflict with the resource you are trying to access.",
+     "userMessage": "You cannot perform this action on the current resource due to a conflict.",
+     "errorCode": 409
+   }
+  },
    "410": {
     "code": 410,
     "body": {
