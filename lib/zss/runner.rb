@@ -24,7 +24,12 @@ module ZSS
       puts "Starting #{proc_name}:\n\tPID: #{pid_path}\n\tLOGS: #{log_path}"
 
       Daemons.run_proc proc_name, daemon_opts do
-        daemon = ZSS::ServiceRegister.get_service
+        daemon = if ZSS::ServiceRegister.respond_to :get_services
+          daemons = ZSS::ServiceRegister.get_services
+          daemons.find { |daemon| daemon.sid == proc_name }
+        else
+          ZSS::ServiceRegister.get_service
+        end
 
         puts "Started #{proc_name} daemon..."
         daemon.run
