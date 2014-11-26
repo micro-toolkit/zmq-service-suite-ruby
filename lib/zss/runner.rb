@@ -26,11 +26,15 @@ module ZSS
       Daemons.run_proc proc_name, daemon_opts do
         daemon = if ZSS::ServiceRegister.respond_to?(:get_services)
           daemons = ZSS::ServiceRegister.get_services
-          daemons.find { |daemon| daemon.sid == proc_name }
+          daemons.find { |daemon| daemon.sid.downcase == proc_name }
         else
           ZSS::ServiceRegister.get_service
         end
 
+        if daemon.nil?
+          puts "Daemon #{proc_name} not found!"
+          exit 1
+        end
         puts "Started #{proc_name} daemon..."
         daemon.run
 
