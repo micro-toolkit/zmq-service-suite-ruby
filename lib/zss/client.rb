@@ -13,6 +13,11 @@ module ZSS
       @sid      = sid.to_s.upcase
       @identity = config[:identity] || "client"
       @timeout  = config[:timeout] || 1000
+      @config = Hashie::Mash.new(
+        socket_address: frontend,
+        identity: identity,
+        timeout: timeout
+      )
     end
 
     def call verb, payload, headers: {}, timeout: nil
@@ -24,7 +29,8 @@ module ZSS
         headers: headers,
         payload: payload)
 
-      log.info("Request #{request.rid} sent to #{request.address} with #{timeout}s timeout")
+      timeout ||= config.timeout
+      log.info("Request #{request.rid} sent to #{request.address} with #{timeout/1000.0}s timeout")
 
       response = socket.call(request, timeout)
 
@@ -37,6 +43,8 @@ module ZSS
 
     private
 
+    attr_reader :config
+
     def method_missing method, *args
       # since we cannot use / on method names we replace _ with /
       verb = method.to_s.gsub('_', '/')
@@ -46,12 +54,6 @@ module ZSS
     end
 
     def socket
-      config = Hashie::Mash.new(
-        socket_address: frontend,
-        identity: identity,
-        timeout: timeout
-      )
-
       Socket.new config
     end
 
