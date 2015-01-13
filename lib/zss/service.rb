@@ -174,17 +174,8 @@ module ZSS
 
     def request_metadata(message, metadata = {})
       metadata = metadata(metadata)
-      metadata[:request] = {
-        client: message.client,
-        identity: message.identity,
-        protocol: message.protocol,
-        type: message.type,
-        rid: message.rid,
-        address: message.address,
-        headers: message.headers,
-        status: message.status,
-        payload: message.payload
-      }
+
+      metadata[:request] = message.to_log
       metadata
     end
   end
