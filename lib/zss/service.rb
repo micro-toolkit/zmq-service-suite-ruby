@@ -27,25 +27,8 @@ module ZSS
       context = EM::ZeroMQ::Context.new(1)
       fail RuntimeError, 'failed to create create_context' unless context
 
-
-      log.info("Starting SID: '#{sid}' ID: '#{identity}' Env: '#{ZSS::Environment.env}' Broker: '#{backend}'",
-        metadata({
-          broker: backend,
-          env: ZSS::Environment.env
-        }))
-
-      EM.run do
-        # handle interrupts
-        Signal.trap("INT") { stop }
-        Signal.trap("TERM") { stop }
-
-        connect_socket context
-
-        start_heartbeat_worker
-
-        # send up message
-        send Message::SMI.up(sid)
-      end
+      log.info("Starting SID: '#{sid}' ID: '#{identity}' Env: '#{ZSS::Environment.env}' Broker: '#{backend}'")
+      event_machine_start(context)
     end
 
     def add_route(context, route, handler = nil)
@@ -68,6 +51,24 @@ module ZSS
     private
 
     attr_accessor :socket, :router, :timer
+
+    def event_machine_start(context)
+      EM.run do
+        handle_interrupts
+
+        connect_socket context
+
+        start_heartbeat_worker
+
+        # send up message
+        send Message::SMI.up(sid)
+      end
+    end
+
+    def handle_interrupts
+      Signal.trap("INT") { stop }
+      Signal.trap("TERM") { stop }
+    end
 
     def connect_socket(context)
 
