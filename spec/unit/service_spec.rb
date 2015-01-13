@@ -162,8 +162,30 @@ describe ZSS::Service do
 
             expect(message.type).to eq(ZSS::Message::Type::REP)
             expect(message.status).to eq(200)
-            expect(message.headers).to eq({ "took" => "0s" })
+            expect(message.headers.took).to eq("0s")
 
+            done
+
+            true
+          end
+        end
+
+      end
+
+      it('returns response time header') do
+        service = DummyService.new
+        subject.add_route(service, :ping)
+
+        EM.run do
+          allow(socket).to receive(:on) do |event, &block|
+            EM.add_timer { block.call *message_parts }
+          end
+
+          subject.run
+
+          expect(socket).to receive(:send_msg) do |*frames|
+            message = ZSS::Message.parse(frames)
+            expect(message.headers["zss-response-time"]).to be
             done
 
             true

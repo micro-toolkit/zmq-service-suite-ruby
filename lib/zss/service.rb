@@ -114,6 +114,7 @@ module ZSS
     end
 
     def handle_request(message)
+      start_time = Time.now.utc
       log.info("Handle request for #{message.address}", request_metadata(message))
       log.trace("Request message:\n #{message}") if log.is_debug
 
@@ -126,6 +127,7 @@ module ZSS
       # the router returns an handler that receives payload and headers
       handler = router.get(message.address.verb)
       message.payload = handler.call(message.payload, message.headers)
+      message.headers["zss-response-time"] = Time.now.utc - start_time
       reply message
     end
 
@@ -147,7 +149,7 @@ module ZSS
       message.status = 200
       message.type = Message::Type::REP
 
-      log.info("Reply with status: #{message.status}", request_metadata(message))
+      log.info("Reply with status: #{message.status}", metadata)
       log.trace("Reply with message:\n #{message}") if log.is_debug
 
       send message
