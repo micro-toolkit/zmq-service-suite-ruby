@@ -27,25 +27,8 @@ module ZSS
       context = EM::ZeroMQ::Context.new(1)
       fail RuntimeError, 'failed to create create_context' unless context
 
-
-      log.info("Starting SID: '#{sid}' ID: '#{identity}' Env: '#{ZSS::Environment.env}' Broker: '#{backend}'",
-        metadata({
-          broker: backend,
-          env: ZSS::Environment.env
-        }))
-
-      EM.run do
-        # handle interrupts
-        Signal.trap("INT") { stop }
-        Signal.trap("TERM") { stop }
-
-        connect_socket context
-
-        start_heartbeat_worker
-
-        # send up message
-        send Message::SMI.up(sid)
-      end
+      log.info("Starting SID: '#{sid}' ID: '#{identity}' Env: '#{ZSS::Environment.env}' Broker: '#{backend}'")
+      event_machine_start(context)
     end
 
     def add_route(context, route, handler = nil)
@@ -68,6 +51,24 @@ module ZSS
     private
 
     attr_accessor :socket, :router, :timer
+
+    def event_machine_start(context)
+      EM.run do
+        handle_interrupts
+
+        connect_socket context
+
+        start_heartbeat_worker
+
+        # send up message
+        send Message::SMI.up(sid)
+      end
+    end
+
+    def handle_interrupts
+      Signal.trap("INT") { stop }
+      Signal.trap("TERM") { stop }
+    end
 
     def connect_socket(context)
 
@@ -115,19 +116,18 @@ module ZSS
 
     def handle_request(message)
       start_time = Time.now.utc
+
       log.info("Handle request for #{message.address}", request_metadata(message))
       log.trace("Request message:\n #{message}") if log.is_debug
 
-      if message.address.sid != sid
-        error = Error[404]
-        error.developer_message = "Invalid SID: #{message.address.sid}!"
-        fail error
-      end
+      check_sid!(message.address.sid)
 
       # the router returns an handler that receives payload and headers
       handler = router.get(message.address.verb)
+
       message.payload = handler.call(message.payload, message.headers)
-      message.headers["zss-response-time"] = ((Time.now.utc - start_time) * 1_000).to_i
+      message.headers["zss-response-time"] = get_time(start_time)
+
       reply message
     end
 
@@ -166,6 +166,14 @@ module ZSS
       log.error("An Error ocurred while sending message", request_metadata(message)) unless success
     end
 
+    def check_sid!(message_sid)
+      return unless message_sid != sid
+
+      error = Error[404]
+      error.developer_message = "Invalid SID: #{message_sid}!"
+      fail error
+    end
+
     def metadata(metadata = {})
       metadata ||= {}
       metadata[:sid] = sid
@@ -179,6 +187,11 @@ module ZSS
 
       metadata[:request] = message.to_log
       metadata
+    end
+
+    def get_time(start_time)
+      # return time in ms
+      ((Time.now.utc - start_time) * 1_000).to_i
     end
   end
 end
