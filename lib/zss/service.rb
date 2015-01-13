@@ -149,7 +149,7 @@ module ZSS
       message.status = 200
       message.type = Message::Type::REP
 
-      log.info("Reply with status: #{message.status}", metadata)
+      log.info("Reply with status: #{message.status}", request_metadata(message))
       log.trace("Reply with message:\n #{message}") if log.is_debug
 
       send message
