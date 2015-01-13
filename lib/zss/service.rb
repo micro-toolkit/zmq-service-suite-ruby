@@ -127,7 +127,7 @@ module ZSS
       # the router returns an handler that receives payload and headers
       handler = router.get(message.address.verb)
       message.payload = handler.call(message.payload, message.headers)
-      message.headers["zss-response-time"] = ((Time.now.utc - start_time) * 1_000).to_i
+      message.headers["zss-response-time"] = get_time(start_time)
       reply message
     end
 
@@ -179,6 +179,11 @@ module ZSS
 
       metadata[:request] = message.to_log
       metadata
+    end
+
+    def get_time(start_time)
+      # return time in ms
+      ((Time.now.utc - start_time) * 1_000).to_i
     end
   end
 end
