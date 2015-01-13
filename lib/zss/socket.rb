@@ -71,7 +71,7 @@ module ZSS
 
     def send_message socket, message
 
-      log.debug("Sending:\n #{message}") if log.is_debug
+      log.trace("Sending:\n #{message}") if log.is_debug
 
       frames = message.to_frames
 
@@ -86,7 +86,7 @@ module ZSS
       check! socket.recv_strings(frames = [])
       message = Message.parse frames
 
-      log.debug("Receiving: \n #{message}") if log.is_debug
+      log.trace("Receiving: \n #{message}") if log.is_debug
 
       message
     end
