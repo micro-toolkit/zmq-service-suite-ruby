@@ -112,6 +112,21 @@ module ZSS
       ]
     end
 
+    def to_log
+      {
+        client: client,
+        identity: identity,
+        protocol: protocol,
+        type: type,
+        rid: rid,
+        address: address,
+        headers: headers,
+        status: status,
+        payload: big? ? "<<Message to big to log>>" : payload,
+        payload_size: payload_size
+      }
+    end
+
     def is_error?
       status != 200
     end
