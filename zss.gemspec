@@ -36,5 +36,5 @@ Gem::Specification.new do |spec|
   spec.add_dependency 'hashie', '~> 3.2'
   spec.add_dependency 'daemons', '~> 1.1'
   spec.add_dependency 'em-zeromq', '~> 0.5'
-  spec.add_dependency 'logger_facade', '~> 0.3'
+  spec.add_dependency 'logger_facade', '~> 0.3.2'
 end
