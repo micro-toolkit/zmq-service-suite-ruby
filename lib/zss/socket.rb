@@ -36,7 +36,7 @@ module ZSS
 
             end
           rescue ::Timeout::Error
-            log.debug("Request #{request.rid} exit with timeout after #{t}s")
+            log.info("Request #{request.rid} exit with timeout after #{t}s")
             raise ZSS::Socket::TimeoutError, "call timeout after #{t}s"
           end
         end
