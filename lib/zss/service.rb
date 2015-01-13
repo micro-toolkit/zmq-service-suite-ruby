@@ -115,19 +115,18 @@ module ZSS
 
     def handle_request(message)
       start_time = Time.now.utc
+
       log.info("Handle request for #{message.address}", request_metadata(message))
       log.trace("Request message:\n #{message}") if log.is_debug
 
-      if message.address.sid != sid
-        error = Error[404]
-        error.developer_message = "Invalid SID: #{message.address.sid}!"
-        fail error
-      end
+      check_sid!(message.address.sid)
 
       # the router returns an handler that receives payload and headers
       handler = router.get(message.address.verb)
+
       message.payload = handler.call(message.payload, message.headers)
       message.headers["zss-response-time"] = get_time(start_time)
+
       reply message
     end
 
@@ -164,6 +163,14 @@ module ZSS
       success = socket.send_msg(*frames)
 
       log.error("An Error ocurred while sending message", request_metadata(message)) unless success
+    end
+
+    def check_sid!(message_sid)
+      return unless message_sid != sid
+
+      error = Error[404]
+      error.developer_message = "Invalid SID: #{message_sid}!"
+      fail error
     end
 
     def metadata(metadata = {})
