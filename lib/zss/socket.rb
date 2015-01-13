@@ -27,11 +27,11 @@ module ZSS
         socket ctx do |sock|
           begin
             ::Timeout.timeout t do
-
-              log.debug("Request #{request.rid} sent to #{request.address} with #{t}s timeout")
+              log.trace("Request #{request.rid} sent to #{request.address} with #{t}s timeout")
+              
               send_message sock, request
 
-              log.debug("Waiting for #{request.rid}")
+              log.trace("Waiting for #{request.rid}")
               response = receive_message(sock)
 
             end
@@ -62,7 +62,7 @@ module ZSS
       socket.setsockopt(ZMQ::LINGER, 0)
       socket.connect(socket_address)
 
-      log.debug("#{socket.identity} connected to #{socket_address}")
+      log.trace("#{socket.identity} connected to #{socket_address}")
 
       yield socket
     ensure
