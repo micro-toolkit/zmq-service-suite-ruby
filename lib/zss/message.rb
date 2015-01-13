@@ -7,9 +7,12 @@ require_relative 'message/message_address'
 module ZSS
   class Message
 
+    CLIENT_ID_REGEX = /^(.+?)#/
+
     PROTOCOL_VERSION = "ZSS:0.0"
 
-    attr_accessor :identity,
+    attr_accessor :client,
+                  :identity,
                   :protocol,
                   :type,
                   :rid,
@@ -28,7 +31,10 @@ module ZSS
       @headers      = args[:headers] || {}
       @status       = args[:status]
       @payload      = args[:payload]
+      @client       = nil
 
+      match = identity.try(:match, CLIENT_ID_REGEX)
+      @client = match.captures.first if match
     end
 
     def req?
