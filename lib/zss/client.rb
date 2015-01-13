@@ -30,11 +30,13 @@ module ZSS
         payload: payload)
 
       timeout ||= config.timeout
-      log.info("Request #{request.rid} sent to #{request.address} with #{timeout/1000.0}s timeout")
+      metadata = metadata(timeout, request)
+      log.info("Request #{request.rid} sent to #{request.address} with #{timeout/1000.0}s timeout", metadata)
 
       response = socket.call(request, timeout)
+      metadata = metadata(timeout, response)
 
-      log.info("Received response to #{request.rid} with status #{response.status}")
+      log.info("Received response to #{request.rid} with status #{response.status}", metadata)
 
       fail ZSS::Error.new(response.status, payload: response.payload) if response.is_error?
 
@@ -55,6 +57,16 @@ module ZSS
 
     def socket
       Socket.new config
+    end
+
+    def metadata(timeout, message)
+      metadata = {
+        identity: identity,
+        timeout: timeout,
+        pid: Process.pid,
+        request: message.to_log
+      }
+      metadata
     end
 
   end
