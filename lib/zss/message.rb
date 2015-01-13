@@ -19,7 +19,8 @@ module ZSS
                   :address,
                   :headers,
                   :status,
-                  :payload
+                  :payload,
+                  :payload_size
 
     def initialize(args = {})
 
@@ -32,9 +33,16 @@ module ZSS
       @status       = args[:status]
       @payload      = args[:payload]
       @client       = nil
+      @payload_size  = args[:payload_size]
 
       match = identity.try(:match, CLIENT_ID_REGEX)
       @client = match.captures.first if match
+    end
+
+    def payload=(payload)
+      @payload = payload
+      @payload_size = nil
+      @payload_msgpack_data = nil
     end
 
     def req?
@@ -44,6 +52,8 @@ module ZSS
     def self.parse(frames)
 
       frames.unshift(nil) if frames.length == 7
+
+      payload_size = frames[7].length
 
       msg = Message.new(
         identity: frames.shift,
@@ -56,6 +66,7 @@ module ZSS
         headers:  Hashie::Mash.new(MessagePack.unpack(frames.shift)),
         status:   frames.shift.to_i,
         payload:  MessagePack.unpack(frames.shift),
+        payload_size: payload_size
       )
 
       if msg.payload.kind_of? Hash
@@ -97,12 +108,22 @@ module ZSS
         address.instance_values.to_msgpack,
         headers.to_h.to_msgpack,
         status.to_s,
-        payload.to_msgpack
+        payload_msgpack
       ]
     end
 
     def is_error?
       status != 200
+    end
+
+    def big?
+      payload_size = payload_msgpack.length unless payload_size
+      payload_size > 1024
+    end
+
+    def payload_msgpack
+      # this will avoid executing multiple serializations
+      @payload_msgpack_data ||= payload.to_msgpack
     end
 
   end
