@@ -41,8 +41,8 @@ module ZSS
 
     def payload=(payload)
       @payload = payload
-      @payload_size = nil
       @payload_msgpack_data = nil
+      @payload_size = payload_msgpack.length
     end
 
     def req?
@@ -53,7 +53,10 @@ module ZSS
 
       frames.unshift(nil) if frames.length == 7
 
-      payload_size = frames[7].length
+      payload_data = frames[7]
+      payload_size = payload_data.length
+      payload = MessagePack.unpack(payload_data)
+      payload = Hashie::Mash.new(payload) if payload.kind_of? Hash
 
       msg = Message.new(
         identity: frames.shift,
@@ -65,13 +68,9 @@ module ZSS
         ),
         headers:  Hashie::Mash.new(MessagePack.unpack(frames.shift)),
         status:   frames.shift.to_i,
-        payload:  MessagePack.unpack(frames.shift),
+        payload:  payload,
         payload_size: payload_size
       )
-
-      if msg.payload.kind_of? Hash
-        msg.payload = Hashie::Mash.new(msg.payload)
-      end
 
       msg
     end
@@ -123,7 +122,7 @@ module ZSS
         headers: headers,
         status: status,
         payload: big? ? "<<Message to big to log>>" : payload,
-        payload_size: payload_size
+        "payload-size" => payload_size
       }
     end
 
