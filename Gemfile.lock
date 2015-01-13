@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    zss (0.2.5)
+    zss (0.3.0)
       activesupport (= 4.1)
       daemons (~> 1.1)
       em-zeromq (~> 0.5)
