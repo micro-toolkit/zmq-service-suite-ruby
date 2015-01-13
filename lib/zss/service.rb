@@ -27,7 +27,12 @@ module ZSS
       context = EM::ZeroMQ::Context.new(1)
       fail RuntimeError, 'failed to create create_context' unless context
 
-      log.info("Starting SID: '#{sid}' ID: '#{identity}' Env: '#{ZSS::Environment.env}' Broker: '#{backend}'")
+
+      log.info("Starting SID: '#{sid}' ID: '#{identity}' Env: '#{ZSS::Environment.env}' Broker: '#{backend}'",
+        metadata({
+          broker: backend,
+          env: ZSS::Environment.env
+        }))
 
       EM.run do
         # handle interrupts
@@ -52,7 +57,7 @@ module ZSS
 
       EM.add_timer do
 
-        log.info("Stoping SID: '#{sid}' ID: '#{socket.identity}'")
+        log.info("Stoping SID: '#{sid}' ID: '#{identity}'", metadata)
 
         send Message::SMI.down(sid)
         socket.disconnect backend
@@ -97,19 +102,21 @@ module ZSS
       if message.req?
         handle_request(message)
       else
-        log.trace("SMI response received: \n #{message}") if log.is_debug
+        context = request_metadata(message)
+        log.trace("SMI response received: \n #{message}", context) if log.is_debug
       end
     rescue ZSS::Error => error
-      log.error("ZSS::Error raised while processing request: #{error}")
+      log.error("ZSS::Error raised while processing request: #{error}", metadata({ error: error }))
       reply_error error, message
     rescue => e
-      log.error("Unexpected error occurred while processing request: #{e}")
+      log.error("Unexpected error occurred while processing request: #{e}", metadata({ exception: e }))
       reply_error Error[500], message
     end
 
     def handle_request(message)
-      log.info("Handle request for #{message.address}")
-      log.debug("Request message:\n #{message}") if log.is_debug
+      start_time = Time.now.utc
+      log.info("Handle request for #{message.address}", request_metadata(message))
+      log.trace("Request message:\n #{message}") if log.is_debug
 
       if message.address.sid != sid
         error = Error[404]
@@ -120,6 +127,7 @@ module ZSS
       # the router returns an handler that receives payload and headers
       handler = router.get(message.address.verb)
       message.payload = handler.call(message.payload, message.headers)
+      message.headers["zss-response-time"] = ((Time.now.utc - start_time) * 1_000).to_i
       reply message
     end
 
@@ -131,6 +139,9 @@ module ZSS
         developerMessage: error.developer_message
       }
       message.type = Message::Type::REP
+
+      log.info("Reply with status: #{message.status}", request_metadata(message))
+
       send message
     end
 
@@ -138,8 +149,8 @@ module ZSS
       message.status = 200
       message.type = Message::Type::REP
 
-      log.info("Reply with status: #{message.status}")
-      log.debug("Reply with message:\n #{message}") if log.is_debug
+      log.info("Reply with status: #{message.status}", request_metadata(message))
+      log.trace("Reply with message:\n #{message}") if log.is_debug
 
       send message
     end
@@ -151,8 +162,23 @@ module ZSS
       #remove identity frame on request
       frames.shift if msg.req?
       success = socket.send_msg(*frames)
-      log.error("An Error ocurred while sending message") unless success
+
+      log.error("An Error ocurred while sending message", request_metadata(message)) unless success
     end
 
+    def metadata(metadata = {})
+      metadata ||= {}
+      metadata[:sid] = sid
+      metadata[:identity] = identity
+      metadata[:pid] = Process.pid
+      metadata
+    end
+
+    def request_metadata(message, metadata = {})
+      metadata = metadata(metadata)
+
+      metadata[:request] = message.to_log
+      metadata
+    end
   end
 end

@@ -33,7 +33,7 @@ describe ZSS::Service do
       run_broker_for_service(broker_backend, message) do |msg|
         expect(msg.payload).to eq("PONG")
         expect(msg.status).to eq(200)
-        expect(msg.headers).to eq({ "took" => "0s" })
+        expect(msg.headers.took).to eq("0s")
         subject.stop
         EM.stop
       end

@@ -7,16 +7,20 @@ require_relative 'message/message_address'
 module ZSS
   class Message
 
+    CLIENT_ID_REGEX = /^(.+?)#/
+
     PROTOCOL_VERSION = "ZSS:0.0"
 
-    attr_accessor :identity,
+    attr_accessor :client,
+                  :identity,
                   :protocol,
                   :type,
                   :rid,
                   :address,
                   :headers,
                   :status,
-                  :payload
+                  :payload,
+                  :payload_size
 
     def initialize(args = {})
 
@@ -28,7 +32,17 @@ module ZSS
       @headers      = args[:headers] || {}
       @status       = args[:status]
       @payload      = args[:payload]
+      @client       = nil
+      @payload_size  = args[:payload_size]
 
+      match = identity.try(:match, CLIENT_ID_REGEX)
+      @client = match.captures.first if match
+    end
+
+    def payload=(payload)
+      @payload = payload
+      @payload_msgpack_data = nil
+      @payload_size = payload_msgpack.length
     end
 
     def req?
@@ -38,6 +52,11 @@ module ZSS
     def self.parse(frames)
 
       frames.unshift(nil) if frames.length == 7
+
+      payload_data = frames[7]
+      payload_size = payload_data.length
+      payload = MessagePack.unpack(payload_data)
+      payload = Hashie::Mash.new(payload) if payload.kind_of? Hash
 
       msg = Message.new(
         identity: frames.shift,
@@ -49,12 +68,9 @@ module ZSS
         ),
         headers:  Hashie::Mash.new(MessagePack.unpack(frames.shift)),
         status:   frames.shift.to_i,
-        payload:  MessagePack.unpack(frames.shift),
+        payload:  payload,
+        payload_size: payload_size
       )
-
-      if msg.payload.kind_of? Hash
-        msg.payload = Hashie::Mash.new(msg.payload)
-      end
 
       msg
     end
@@ -91,12 +107,37 @@ module ZSS
         address.instance_values.to_msgpack,
         headers.to_h.to_msgpack,
         status.to_s,
-        payload.to_msgpack
+        payload_msgpack
       ]
+    end
+
+    def to_log
+      {
+        client: client,
+        identity: identity,
+        protocol: protocol,
+        type: type,
+        rid: rid,
+        address: address,
+        headers: headers,
+        status: status,
+        payload: big? ? "<<Message to big to log>>" : payload,
+        "payload-size" => payload_size
+      }
     end
 
     def is_error?
       status != 200
+    end
+
+    def big?
+      payload_size = payload_msgpack.length unless payload_size
+      payload_size > 1024
+    end
+
+    def payload_msgpack
+      # this will avoid executing multiple serializations
+      @payload_msgpack_data ||= payload.to_msgpack
     end
 
   end

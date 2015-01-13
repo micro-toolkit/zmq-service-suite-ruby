@@ -2,22 +2,22 @@ PATH
   remote: .
   specs:
     zss (0.2.5)
-      activesupport (~> 4.1)
+      activesupport (= 4.1)
       daemons (~> 1.1)
       em-zeromq (~> 0.5)
       ffi-rzmq (~> 2.0)
       hashie (~> 3.2)
-      logger_facade (~> 0.1)
+      logger_facade (~> 0.3)
       msgpack (~> 0.5)
 
 GEM
   remote: https://rubygems.org/
   specs:
-    activesupport (4.2.0)
-      i18n (~> 0.7)
+    activesupport (4.1.0)
+      i18n (~> 0.6, >= 0.6.9)
       json (~> 1.7, >= 1.7.7)
       minitest (~> 5.1)
-      thread_safe (~> 0.3, >= 0.3.4)
+      thread_safe (~> 0.1)
       tzinfo (~> 1.1)
     airbrake (4.1.0)
       builder

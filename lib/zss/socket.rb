@@ -27,16 +27,16 @@ module ZSS
         socket ctx do |sock|
           begin
             ::Timeout.timeout t do
-
-              log.debug("Request #{request.rid} sent to #{request.address} with #{t}s timeout")
+              log.trace("Request #{request.rid} sent to #{request.address} with #{t}s timeout")
+              
               send_message sock, request
 
-              log.debug("Waiting for #{request.rid}")
+              log.trace("Waiting for #{request.rid}")
               response = receive_message(sock)
 
             end
           rescue ::Timeout::Error
-            log.debug("Request #{request.rid} exit with timeout after #{t}s")
+            log.info("Request #{request.rid} exit with timeout after #{t}s")
             raise ZSS::Socket::TimeoutError, "call timeout after #{t}s"
           end
         end
@@ -62,7 +62,7 @@ module ZSS
       socket.setsockopt(ZMQ::LINGER, 0)
       socket.connect(socket_address)
 
-      log.debug("#{socket.identity} connected to #{socket_address}")
+      log.trace("#{socket.identity} connected to #{socket_address}")
 
       yield socket
     ensure
@@ -71,7 +71,7 @@ module ZSS
 
     def send_message socket, message
 
-      log.debug("Sending:\n #{message}") if log.is_debug
+      log.trace("Sending:\n #{message}") if log.is_debug
 
       frames = message.to_frames
 
@@ -86,7 +86,7 @@ module ZSS
       check! socket.recv_strings(frames = [])
       message = Message.parse frames
 
-      log.debug("Receiving: \n #{message}") if log.is_debug
+      log.trace("Receiving: \n #{message}") if log.is_debug
 
       message
     end
