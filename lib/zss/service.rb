@@ -107,7 +107,11 @@ module ZSS
         log.trace("SMI response received: \n #{message}", context) if log.is_debug
       end
     rescue ZSS::Error => error
-      log.error("ZSS::Error raised while processing request: #{error}", metadata({ error: error }))
+      if error.code >= 400 and error.code < 500
+        log.info("ZSS::Error raised while processing request: #{error}",
+          metadata({ error: error }))
+      end
+
       reply_error error, message
     rescue => e
       log.error("Unexpected error occurred while processing request: #{e}", metadata({ exception: e }))
