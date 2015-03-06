@@ -5,6 +5,8 @@ require 'active_support/core_ext/hash/indifferent_access'
 
 require 'logger_facade'
 
+require_relative 'zss/require'
+require_relative 'zss/validate'
 require_relative 'zss/version'
 require_relative 'zss/environment'
 require_relative 'zss/configuration'
