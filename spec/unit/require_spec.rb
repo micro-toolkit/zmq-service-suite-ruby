@@ -1,4 +1,5 @@
 require 'spec_helper'
+require 'zss/require'
 
 describe ZSS::Require do
 

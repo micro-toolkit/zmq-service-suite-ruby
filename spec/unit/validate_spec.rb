@@ -1,4 +1,5 @@
 require 'spec_helper'
+require 'zss/validate'
 
 describe ZSS::Validate do
 
