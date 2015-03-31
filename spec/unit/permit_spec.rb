@@ -8,7 +8,7 @@ describe ZSS::Permit do
   end
 
   it 'filters all non permitted params' do
-    ZSS::Permit::Permitter.permit(params, [ :arg1 ])
+    ZSS::Permit::Permitter.permit!(params, [ :arg1 ])
     expect(
       params
     ).to eq({ arg1: 'somevalue' })
@@ -21,7 +21,7 @@ describe ZSS::Permit do
     end
 
     testObject = SomeClass.new
-    testObject.permit(params, :arg1)
+    testObject.permit!(params, :arg1)
 
     expect(
       params
