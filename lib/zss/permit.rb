@@ -3,7 +3,7 @@ module ZSS
 
     class Permitter
 
-      def self.permit params, attributes
+      def self.permit! params, attributes
         params.keep_if do |k, _|
           Array(attributes).include? k.to_sym
         end
@@ -11,8 +11,8 @@ module ZSS
 
     end
 
-    def permit params, *attributes
-      Permitter.permit(params, attributes)
+    def permit! params, *attributes
+      Permitter.permit!(params, attributes)
     end
 
   end
