@@ -30,7 +30,7 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency 'codeclimate-test-reporter', '~> 0.3'
   spec.add_development_dependency 'bump', '~> 0.5'
 
-  spec.add_dependency 'msgpack', '~> 0.5'
+  spec.add_dependency 'msgpack', '0.5.12'
   spec.add_dependency 'ffi-rzmq', '~> 2.0'
   spec.add_dependency 'activesupport', '~> 4.2'
   spec.add_dependency 'hashie', '~> 3.2'
