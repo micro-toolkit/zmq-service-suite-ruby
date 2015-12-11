@@ -100,22 +100,26 @@ module ZSS
     end
 
     def handle(message)
-      if message.req?
-        handle_request(message)
-      else
-        context = request_metadata(message)
-        log.trace("SMI response received: \n #{message}", context) if log.is_debug
-      end
-    rescue ZSS::Error => error
-      if error.code >= 400 and error.code < 500
-        log.info("ZSS::Error raised while processing request: #{error}",
-          metadata({ error: error }))
-      end
+      EM.defer do
+        begin
+          if message.req?
+            handle_request(message)
+          else
+            context = request_metadata(message)
+            log.trace("SMI response received: \n #{message}", context) if log.is_debug
+          end
+        rescue ZSS::Error => error
+          if error.code >= 400 and error.code < 500
+            log.info("ZSS::Error raised while processing request: #{error}",
+              metadata({ error: error }))
+          end
 
-      reply_error error, message
-    rescue => e
-      log.error("Unexpected error occurred while processing request: #{e}", metadata({ exception: e }))
-      reply_error Error[500], message
+          reply_error error, message
+        rescue => e
+          log.error("Unexpected error occurred while processing request: #{e}", metadata({ exception: e }))
+          reply_error Error[500], message
+        end
+      end
     end
 
     def handle_request(message)
