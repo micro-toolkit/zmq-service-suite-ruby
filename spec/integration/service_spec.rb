@@ -38,9 +38,11 @@ describe ZSS::Service do
         EM.stop
       end
 
-      service = DummyService.new
-      subject.add_route(service, :ping)
-      subject.run
+      EM.defer do
+        service = DummyService.new
+        subject.add_route(service, :ping)
+        subject.run
+      end
     end
 
   end
