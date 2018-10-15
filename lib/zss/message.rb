@@ -50,7 +50,6 @@ module ZSS
     end
 
     def self.parse(frames)
-
       frames.unshift(nil) if frames.length == 7
 
       payload_data = frames[7]
@@ -58,7 +57,7 @@ module ZSS
       payload = MessagePack.unpack(payload_data)
       payload = Hashie::Mash.new(payload) if payload.kind_of? Hash
 
-      msg = Message.new(
+      Message.new(
         identity: frames.shift,
         protocol: frames.shift,
         type:     frames.shift,
@@ -71,8 +70,6 @@ module ZSS
         payload:  payload,
         payload_size: payload_size
       )
-
-      msg
     end
 
     def to_s

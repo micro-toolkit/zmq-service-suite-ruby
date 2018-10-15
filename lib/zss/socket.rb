@@ -17,7 +17,7 @@ module ZSS
       @socket_address = config.socket_address
     end
 
-    def call request, call_timeout = nil
+    def call(request, call_timeout = nil)
       fail Socket::Error, 'invalid request' unless request
 
       response = nil
@@ -28,7 +28,7 @@ module ZSS
           begin
             ::Timeout.timeout t do
               log.trace("Request #{request.rid} sent to #{request.address} with #{t}s timeout")
-              
+
               send_message sock, request
 
               log.trace("Waiting for #{request.rid}")
@@ -82,7 +82,7 @@ module ZSS
       check! socket.send_string last.to_s
     end
 
-    def receive_message socket
+    def receive_message(socket)
       check! socket.recv_strings(frames = [])
       message = Message.parse frames
 
