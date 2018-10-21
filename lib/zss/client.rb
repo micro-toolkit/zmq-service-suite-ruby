@@ -52,17 +52,18 @@ module ZSS
 
       params = {
         class: 'ZSS::Client',
-          method: 'call',
-          params: {
-            method_params: {
-              verb: verb,
-              payload: payload,
-              headers: headers,
-              timeout: timeout
-            }
-            additional_variables: additional_variables
-          }
+        method: 'call',
+        params: {
+          method_params: {
+            verb: verb,
+            payload: payload,
+            headers: headers,
+            timeout: timeout
+          },
+          additional_variables: additional_variables
+        }
       }
+
       begin
         ZSS::Notifier.notify_exception(e, params)
       rescue
