@@ -6,7 +6,6 @@ require_relative 'message/smi'
 module ZSS
   class Service
 
-    include LoggerFacade::Loggable
 
     attr_reader :sid, :heartbeat, :backend, :identity
 

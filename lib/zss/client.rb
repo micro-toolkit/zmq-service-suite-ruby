@@ -4,7 +4,6 @@ require_relative 'socket'
 module ZSS
   class Client
 
-    include LoggerFacade::Loggable
 
     attr_reader :sid, :frontend, :identity, :timeout
 

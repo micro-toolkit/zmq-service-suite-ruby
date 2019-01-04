@@ -37,5 +37,4 @@ Gem::Specification.new do |spec|
   spec.add_dependency 'daemons', '~> 1.1'
   spec.add_dependency 'em-zeromq', '~> 0.5'
   spec.add_dependency 'party_foul'
-  spec.add_dependency 'logger_facade', '~> 0.4.1'
 end

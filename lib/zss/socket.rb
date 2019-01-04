@@ -4,7 +4,6 @@ require 'timeout'
 module ZSS
   class Socket
 
-    include LoggerFacade::Loggable
 
     class Error        < StandardError; end
     class TimeoutError < Socket::Error; end
